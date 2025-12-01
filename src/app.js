@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Home from './views/Home';
 import Login from './views/Login';
 import Results from './views/Results';
+import GameTest from "./views/GameTest";
 
 function App() {
   return (
@@ -12,6 +13,8 @@ function App() {
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
         <Route path="results" element={<Results />} />
+        <Route path="gameTest" element={<GameTest />} />
+
       </Route>
     </Routes>
   );
