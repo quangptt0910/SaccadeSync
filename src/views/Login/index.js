@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { selectAuthLoading, selectAuthError } from '../../store/authSlice';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectAuthLoading, selectAuthError, setError } from '../../store/authSlice';
 import { useAuth } from '../../hooks';
 import { Button, Input } from '../../components';
 import './Login.css';
@@ -19,8 +19,26 @@ const initialRegisterData = {
   confirmPassword: ''
 };
 
+const validateDate = (dateStr) => {
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateStr.match(regex);
+  if (!match) return false;
+  
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+  
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  if (year < 1900 || year > new Date().getFullYear()) return false;
+  
+  const date = new Date(year, month - 1, day);
+  return date.getDate() === day && date.getMonth() === month - 1;
+};
+
 const Login = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { signIn, register } = useAuth();
   const loading = useSelector(selectAuthLoading);
   const error = useSelector(selectAuthError);
@@ -52,6 +70,15 @@ const Login = () => {
     try {
       if (isRegister) {
         if (registerData.password !== registerData.confirmPassword) {
+          dispatch(setError('Passwords do not match'));
+          return;
+        }
+        if (!validateDate(registerData.dateOfBirth)) {
+          dispatch(setError('Invalid date format. Use DD/MM/YYYY'));
+          return;
+        }
+        if (!registerData.gender) {
+          dispatch(setError('Please select a gender'));
           return;
         }
         await register(registerData.email, registerData.password, {
@@ -63,10 +90,11 @@ const Login = () => {
           familyHistory: registerData.familyHistory,
           conditions: registerData.conditions,
         });
+        navigate('/');
       } else {
         await signIn(formData.email, formData.password);
+        navigate('/results');
       }
-      navigate('/results');
     } catch (err) {
       // Error handled by hook
     }
@@ -116,14 +144,19 @@ const Login = () => {
                   value={registerData.dateOfBirth}
                   onChange={handleRegisterChange}
                 />
-                <Input
-                  label="Gender"
-                  type="text"
-                  name="gender"
-                  placeholder="Male/Female"
-                  value={registerData.gender}
-                  onChange={handleRegisterChange}
-                />
+                <div className="input-group">
+                  <label className="input-label">Gender</label>
+                  <select
+                    name="gender"
+                    className="input-select"
+                    value={registerData.gender}
+                    onChange={handleRegisterChange}
+                  >
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
               </div>
 
               <h2 className="form-section-title">Health Information</h2>

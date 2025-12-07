@@ -7,7 +7,7 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { login, logout, setLoading, setError } from '../store/authSlice';
 
@@ -18,12 +18,15 @@ const useAuth = () => {
   useEffect(() => {
     dispatch(setLoading(true));
     
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userData = userDoc.exists() ? userDoc.data() : {};
         dispatch(login({
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
+          name: userData.name || null,
         }));
       } else {
         dispatch(logout());
