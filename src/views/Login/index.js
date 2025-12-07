@@ -20,20 +20,9 @@ const initialRegisterData = {
 };
 
 const validateDate = (dateStr) => {
-  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-  const match = dateStr.match(regex);
-  if (!match) return false;
-  
-  const day = parseInt(match[1], 10);
-  const month = parseInt(match[2], 10);
-  const year = parseInt(match[3], 10);
-  
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > 31) return false;
-  if (year < 1900 || year > new Date().getFullYear()) return false;
-  
-  const date = new Date(year, month - 1, day);
-  return date.getDate() === day && date.getMonth() === month - 1;
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
 };
 
 const Login = () => {
@@ -74,7 +63,7 @@ const Login = () => {
           return;
         }
         if (!validateDate(registerData.dateOfBirth)) {
-          dispatch(setError('Invalid date format. Use DD/MM/YYYY'));
+          dispatch(setError('Please select a valid date of birth'));
           return;
         }
         if (!registerData.gender) {
