@@ -136,14 +136,17 @@ const Login = () => {
                 />
               </div>
               <div className="form-row">
-                <Input
-                  label="Date of Birth"
-                  type="text"
-                  name="dateOfBirth"
-                  placeholder="DD/MM/YYYY"
-                  value={registerData.dateOfBirth}
-                  onChange={handleRegisterChange}
-                />
+                <div className="input-group">
+                  <label className="input-label">Date of Birth</label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    className="input-select"
+                    value={registerData.dateOfBirth}
+                    onChange={handleRegisterChange}
+                    max={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
                 <div className="input-group">
                   <label className="input-label">Gender</label>
                   <select
