@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../../components/Modal';
 import './GameTest.css';
+import IrisFaceMeshTracker from "./utils/iris-facemesh";
 
 const GameTest = () => {
 
@@ -13,6 +14,7 @@ const GameTest = () => {
     const [trialCount, setTrialCount] = useState(0);
     const [isFinished, setIsFinished] = useState(false);
 
+    const irisTracker = useRef(null);
 
     // trial parameters
     const trialsAmount = 20;
@@ -41,15 +43,29 @@ const GameTest = () => {
         }
     };
 
-    const handleStartTest = () => {
+    const handleStartTest = async () => {
         enterFullScreen(); // 1. Go Full Screen
-        setIsStarted(true); // 2. Start the logic
+
+        // 2. Initialize and start iris tracking
+        if (!irisTracker.current) {
+            irisTracker.current = new IrisFaceMeshTracker();
+            await irisTracker.current.initialize();
+        }
+        await irisTracker.current.startTracking();
+
+        setIsStarted(true); // 3. Start the logic
+
     };
 
     // Cleanup function: sets mounted to false when you leave the page
     useEffect(() => {
         mounted.current = true;
-        return () => { mounted.current = false; };
+        return () => {
+            mounted.current = false;
+            if (irisTracker.current) {
+                irisTracker.current.cleanup();
+            }
+        };
     }, []);
 
     // helper to get random time per trial that center dot stays on the screen
@@ -72,26 +88,47 @@ const GameTest = () => {
 
                 // 1. Fixation
                 setDotPosition('center');
+                if (irisTracker.current) {
+                    irisTracker.current.addTrialContext(i + 1, 'center');
+                }
                 await wait(getFixationTime());
 
                 // 2. Gap
                 if (!mounted.current) break;
                 setDotPosition('hidden');
+                if (irisTracker.current) {
+                    irisTracker.current.addTrialContext(i + 1, 'gap');
+                }
                 await wait(gapTimeBetweenCenterDot);
 
                 // 3. Target
                 if (!mounted.current) break;
                 const side = Math.random() > 0.5 ? 'left' : 'right';
                 setDotPosition(side);
+                if (irisTracker.current) {
+                    irisTracker.current.addTrialContext(i + 1, side);
+                }
                 await wait(sideDotShowTime);
 
                 // 4. Interval
                 if (!mounted.current) break;
                 setDotPosition('hidden');
+                if (irisTracker.current) {
+                    irisTracker.current.addTrialContext(i + 1, 'interval');
+                }
                 await wait(interTrialInterval);
             }
 
-            if (mounted.current) setIsFinished(true);
+            if (mounted.current) {
+                // Stop tracking and export data
+                if (irisTracker.current) {
+                    irisTracker.current.stopTracking();
+                    setTimeout(() => {
+                        irisTracker.current.exportCSV();
+                    }, 1000); // slight delay to ensure all data is processed
+                }
+                setIsFinished(true);
+            }
 
             // Optional: Exit full screen when done
             if (document.exitFullscreen) document.exitFullscreen();
