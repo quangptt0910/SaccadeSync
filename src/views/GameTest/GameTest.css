@@ -16,6 +16,7 @@
 .center-dot {
     left: 50%;
     transform: translate(-50%, -50%);
+    background-color: #3b82f6;
 }
 
 .left-dot {

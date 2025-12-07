@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Modal from '../../components/Modal';
 import './GameTest.css';
 import IrisFaceMeshTracker from "./utils/iris-facemesh";
+import {analyzeSaccadeData} from './utils/saccadeData';
 
 const GameTest = () => {
 
@@ -14,10 +15,13 @@ const GameTest = () => {
     const [trialCount, setTrialCount] = useState(0);
     const [isFinished, setIsFinished] = useState(false);
 
+    // calculated results for final report
+    const [testResults, setTestResults] = useState([]);
+
     const irisTracker = useRef(null);
 
     // trial parameters
-    const trialsAmount = 20;
+    const trialsAmount = 10;
     const breakTime = 60000;
     const interTrialInterval = 1000;
 
@@ -82,6 +86,9 @@ const GameTest = () => {
         const runTest = async () => {
             await wait(1000); // Buffer time
 
+            // collect results for the saccade parameters
+            const currentSessionResults = []
+
             for (let i = 0; i < trialsAmount; i++) {
                 if (!mounted.current) break;
                 setTrialCount(i + 1);
@@ -104,11 +111,30 @@ const GameTest = () => {
                 // 3. Target
                 if (!mounted.current) break;
                 const side = Math.random() > 0.5 ? 'left' : 'right';
+
                 setDotPosition(side);
+                const dotAppearanceTime = irisTracker.current
+                    ? Date.now() - irisTracker.current.startTime
+                    : Date.now();
+
                 if (irisTracker.current) {
                     irisTracker.current.addTrialContext(i + 1, side);
                 }
                 await wait(sideDotShowTime);
+
+                if (irisTracker.current) {
+                    // Now get the data, which includes the movement that just happened
+                    const allData = irisTracker.current.getTrackingData();
+
+                    // Analyze from the moment the dot appeared until now
+                    const analysis = analyzeSaccadeData(allData, dotAppearanceTime);
+
+                    // This should now print a real number (e.g., 200-500 deg/s)
+                    console.log(`Trial ${i+1} Peak Velocity:`, analysis.peakVelocity);
+
+                    // Store result if needed
+                    // currentSessionResults.push(analysis);
+                }
 
                 // 4. Interval
                 if (!mounted.current) break;
