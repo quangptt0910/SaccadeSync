@@ -7,7 +7,8 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import { login, logout, setLoading, setError } from '../store/authSlice';
 
 const useAuth = () => {
@@ -34,14 +35,26 @@ const useAuth = () => {
     return () => unsubscribe();
   }, [dispatch]);
 
-  const register = useCallback(async (email, password, displayName) => {
+  const register = useCallback(async (email, password, profileData) => {
     dispatch(setLoading(true));
     dispatch(setError(null));
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      if (displayName) {
-        await updateProfile(user, { displayName });
-      }
+      const displayName = `${profileData.name} ${profileData.surname}`;
+      await updateProfile(user, { displayName });
+      
+      await setDoc(doc(db, 'users', user.uid), {
+        email,
+        name: profileData.name,
+        surname: profileData.surname,
+        dateOfBirth: profileData.dateOfBirth,
+        gender: profileData.gender,
+        medications: profileData.medications,
+        familyHistory: profileData.familyHistory,
+        conditions: profileData.conditions,
+        createdAt: new Date().toISOString(),
+      });
+      
       return user;
     } catch (error) {
       dispatch(setError(error.message));
