@@ -43,3 +43,16 @@
 .navbar__link--active:hover {
   background-color: #333;
 }
+
+.navbar__welcome {
+  font-size: 0.9rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.navbar__logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
