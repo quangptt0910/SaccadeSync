@@ -33,7 +33,7 @@ const Home = () => {
           <p className="cta__description">
             With some eye-tracking tests we can find identifying traits of ADHD or fatigue based on your results.
           </p>
-          <Link to="/instructions">
+          <Link to="/calibration-intro">
             <Button variant="primary">Start the process</Button>
           </Link>
         </div>
