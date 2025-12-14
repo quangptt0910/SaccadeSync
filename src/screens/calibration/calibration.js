@@ -1,18 +1,17 @@
-console.log("calibration.js loaded");
+import { initDomRefs } from "./modules/domRefs.js";
+import { initFaceLandmarker } from "./modules/faceModel.js";
+import { startDistanceCheck } from "./modules/video.js";
+import { runDotCalibration } from "./modules/dotCalibration.js";
 
-function initCalibration() {
-    console.log("Index initialized");
+export async function initCalibration() {
+    initDomRefs();
+    await initFaceLandmarker();
 
-    const finishBtn = document.getElementById("finishCalibrationBtn");
+    document
+        .getElementById("start-calibration-btn")
+        .addEventListener("click", startDistanceCheck);
 
-    if (finishBtn) {
-        finishBtn.addEventListener("click", () => {
-            console.log("Index finished (test)");
-            window.location.href = "/instructions";
-        });
-    } else {
-        console.warn("Finish button not found");
-    }
+    document
+        .getElementById("run-calibration-btn-overlay")
+        .addEventListener("click", runDotCalibration);
 }
-
-window.initCalibration = initCalibration;

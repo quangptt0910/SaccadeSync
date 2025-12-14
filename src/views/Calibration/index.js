@@ -1,24 +1,41 @@
 import React, { useEffect } from "react";
-import "../../screens/calibration/calibration";
+import { initCalibration } from "../../screens/calibration/calibration";
 import "./Calibration.css";
 
-const Index = () => {
+export default function Calibration() {
     useEffect(() => {
-        if (window.initCalibration) {
-            window.initCalibration();
-        }
+        initCalibration();
     }, []);
 
     return (
         <div id="calibration-root">
-            <h1>CALIBRATION SCREEN (TEST)</h1>
-            <p>calibration mounted correctly</p>
+            <div className="video-container">
+                <video id="calibration-video" muted playsInline />
+                <canvas id="calibration-canvas" />
+            </div>
 
-            <button id="finishCalibrationBtn">
-                Finish calibration (test)
-            </button>
+            <div id="static-preview">Camera preview</div>
+
+            <div id="distance-overlay">
+                <h2 id="overlay-status-text"></h2>
+                <p id="overlay-instructions"></p>
+                <button id="run-calibration-btn-overlay">Run Calibration</button>
+            </div>
+
+            <div id="distance-status"></div>
+
+            <button id="start-calibration-btn">Start Check</button>
+            <button id="stop-calibration-btn">Stop</button>
+
+            <div id="dot-stage">
+                <div id="cal-dot"></div>
+            </div>
+
+            <div id="fs-warning">
+                <div className="panel">Calibration interrupted</div>
+            </div>
+
+            <div id="calibration-parameters"></div>
         </div>
     );
-};
-
-export default Index;
+}
