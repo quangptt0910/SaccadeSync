@@ -2,7 +2,7 @@ import React from "react";
 import { Helmet } from "react-helmet";
 import Button from "../../components/Button";
 import { useNavigate } from "react-router-dom";
-import "./CalibrationIntro.css";
+import "./CalibrationInstructions.css";
 
 const CalibrationIntro = () => {
     const navigate = useNavigate();

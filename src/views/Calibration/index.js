@@ -1,8 +1,8 @@
 import React, { useEffect } from "react";
 import "../../screens/calibration/calibration";
-import "./calibration.css";
+import "./Calibration.css";
 
-const Calibration = () => {
+const Index = () => {
     useEffect(() => {
         if (window.initCalibration) {
             window.initCalibration();
@@ -21,4 +21,4 @@ const Calibration = () => {
     );
 };
 
-export default Calibration;
+export default Index;

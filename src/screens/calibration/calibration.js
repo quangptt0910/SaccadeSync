@@ -1,13 +1,13 @@
 console.log("calibration.js loaded");
 
 function initCalibration() {
-    console.log("Calibration initialized");
+    console.log("Index initialized");
 
     const finishBtn = document.getElementById("finishCalibrationBtn");
 
     if (finishBtn) {
         finishBtn.addEventListener("click", () => {
-            console.log("Calibration finished (test)");
+            console.log("Index finished (test)");
             window.location.href = "/instructions";
         });
     } else {

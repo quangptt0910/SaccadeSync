@@ -53,7 +53,7 @@ export function handleDistanceState(landmarks) {
     runCalibBtnOverlay.style.display = "inline-block";
     overlayStatusText.textContent = "DISTANCE OK";
     overlayInstructions.textContent =
-        "Click Run Calibration to begin calibration.";
+        "Click Run Index to begin calibration.";
     statusEl.textContent = "Distance OK";
     statusEl.className = "good";
 
