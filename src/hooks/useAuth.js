@@ -26,7 +26,7 @@ const useAuth = () => {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
-          name: userData.name || null,
+          username: userData.username || null,
         }));
       } else {
         dispatch(logout());
@@ -43,13 +43,11 @@ const useAuth = () => {
     dispatch(setError(null));
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      const displayName = `${profileData.name} ${profileData.surname}`;
-      await updateProfile(user, { displayName });
+      await updateProfile(user, { displayName: profileData.username });
       
       await setDoc(doc(db, 'users', user.uid), {
         email,
-        name: profileData.name,
-        surname: profileData.surname,
+        username: profileData.username,
         dateOfBirth: profileData.dateOfBirth,
         gender: profileData.gender,
         medications: profileData.medications,
