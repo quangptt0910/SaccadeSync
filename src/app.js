@@ -7,7 +7,6 @@ import Results from './views/Results';
 import GameTest from "./views/GameTest";
 import Instructions from './views/Instructions';
 import Index from "./views/Calibration";
-import CalibrationInstructions from "./views/CalibrationInstructions";
 
 function App() {
   return (
@@ -18,10 +17,7 @@ function App() {
         <Route path="results" element={<Results />} />
         <Route path="gameTest" element={<GameTest />} />
         <Route path="instructions" element={<Instructions />} />
-        <Route path="calibration-intro" element={<CalibrationInstructions />} />
         <Route path="calibration" element={<Index />} />
-
-
       </Route>
     </Routes>
   );
