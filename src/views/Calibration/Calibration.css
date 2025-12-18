@@ -16,6 +16,11 @@
 }
 
 .calibration-card > h2,
+.calibration-card > .calibration-title,
+.calibration-card > .calibration-intro,
+.calibration-card > .calibration-section,
+.calibration-card > .calibration-note,
+.calibration-card > .calibration-divider,
 .calibration-card > .instruction-text,
 #distance-status,
 #stop-calibration-btn,
@@ -23,18 +28,88 @@
     grid-column: 1 / 2;
 }
 
-.calibration-card h2 {
+.calibration-title {
     font-size: 2.5rem;
     font-weight: 700;
     color: #1a1a1a;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
-.instruction-text {
+.calibration-intro {
     font-size: 1rem;
     line-height: 1.6;
     color: #555;
-    max-width: 400px;
+    max-width: 420px;
+    margin-bottom: 1.75rem;
+}
+
+.calibration-section {
+    margin-bottom: 1.5rem;
+}
+
+.calibration-section h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 0.4rem;
+}
+
+.calibration-section p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #555;
+    max-width: 420px;
+}
+
+.calibration-steps {
+    padding-left: 1.2rem;
+    max-width: 420px;
+}
+
+.calibration-steps li {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #555;
+}
+
+.calibration-steps li strong {
+    display: block;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 0.25rem;
+}
+
+.calibration-steps li span {
+    display: block;
+}
+
+.calibration-note {
+    background: #f4fbfd;
+    border-left: 4px solid #1a1a1a;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #333;
+    max-width: 420px;
+    margin-bottom: 1.75rem;
+    border-radius: 4px;
+}
+
+.calibration-divider {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.15);
+    margin: 2rem 0 1.5rem 0;
+    max-width: 420px;
+}
+
+.instruction-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #444;
+    margin-bottom: 0.75rem;
 }
 
 .video-container {
@@ -179,14 +254,23 @@
         grid-column: 1 / -1;
     }
 
-    .instruction-text {
+    .calibration-intro,
+    .calibration-section p,
+    .calibration-note,
+    .calibration-divider {
+        margin-left: auto;
+        margin-right: auto;
         max-width: 100%;
-        margin: 0 auto;
+    }
+
+    .calibration-steps {
+        padding-left: 0;
+        list-style-position: inside;
     }
 }
 
 @media (max-width: 640px) {
-    .calibration-card h2 {
+    .calibration-title {
         font-size: 2rem;
     }
 }
