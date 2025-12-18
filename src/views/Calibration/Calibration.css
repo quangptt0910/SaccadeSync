@@ -1,12 +1,192 @@
 #calibration-root {
-    width: 100%;
-    height: 100vh;
-    position: relative;
+    background-color: #e8f4f8;
+    min-height: calc(100vh - 60px);
+    padding: 3rem 2rem;
+    display: flex;
+    justify-content: center;
 }
 
-#video,
-#overlay {
+.calibration-card {
+    width: 100%;
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 3rem;
+    align-items: center;
+}
+
+.calibration-card > h2,
+.calibration-card > .instruction-text,
+#distance-status,
+#stop-calibration-btn,
+#calibration-parameters {
+    grid-column: 1 / 2;
+}
+
+.calibration-card h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 1rem;
+}
+
+.instruction-text {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #555;
+    max-width: 400px;
+}
+
+.video-container {
+    grid-column: 2 / 3;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #b8d4dc;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#calibration-video,
+#calibration-canvas {
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.show {
+    display: block !important;
+}
+
+.show-flex {
+    display: flex !important;
+}
+
+#static-preview,
+#distance-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+#static-preview {
+    background: #f4fbfd;
+}
+
+#static-preview h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 0.75rem;
+}
+
+#static-preview p {
+    color: #555;
+    margin-bottom: 1.5rem;
+    max-width: 300px;
+}
+
+#distance-overlay {
+    background: rgba(26, 26, 26, 0.85);
+    color: #fff;
+}
+
+.btn {
+    padding: 0.75rem 1.75rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background-color: #1a1a1a;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.btn-danger {
+    background-color: #c0392b;
+    color: #fff;
+}
+
+#distance-status {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #555;
+}
+
+#dot-stage {
+    position: fixed;
+    inset: 0;
+    background: black;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+#cal-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: red;
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+
+#fs-warning {
+    position: fixed;
+    inset: 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+#fs-warning .panel {
+    background: #1a1a1a;
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+}
+
+@media (max-width: 968px) {
+    .calibration-card {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .video-container {
+        grid-column: 1 / -1;
+    }
+
+    .instruction-text {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .calibration-card h2 {
+        font-size: 2rem;
+    }
 }

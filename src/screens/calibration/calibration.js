@@ -7,11 +7,9 @@ export async function initCalibration() {
     initDomRefs();
     await initFaceLandmarker();
 
-    document
-        .getElementById("start-calibration-btn")
-        .addEventListener("click", startDistanceCheck);
+    const startBtn = document.getElementById("start-calibration-btn");
+    const runBtn = document.getElementById("run-calibration-btn-overlay");
 
-    document
-        .getElementById("run-calibration-btn-overlay")
-        .addEventListener("click", runDotCalibration);
+    startBtn?.addEventListener("click", startDistanceCheck);
+    runBtn?.addEventListener("click", runDotCalibration);
 }
