@@ -9,7 +9,8 @@ class IrisFaceMeshTracker {
         this.videoElement = null;
         this.startTime = null;
         this.animationId = null;
-
+        this.previousFrame = null;
+        this.calibrationModel = null;
         // Iris landmark indices in MediaPipe Face Landmarker
         // Indices 468-477 are iris landmarks (468-472: left, 473-477: right)
         this.LEFT_IRIS_CENTER = 468;
@@ -51,8 +52,8 @@ class IrisFaceMeshTracker {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
                     facingMode: 'user'
                 }
             });
@@ -135,7 +136,7 @@ class IrisFaceMeshTracker {
         const velocity = distance / timeDiff;
 
         // Saccade threshold (pixels per second)
-        const SACCADE_THRESHOLD = 1500;
+        const SACCADE_THRESHOLD = 150;
 
         if (velocity > SACCADE_THRESHOLD) {
             currentPoint.isSaccade = true;
@@ -194,7 +195,7 @@ class IrisFaceMeshTracker {
         }
 
         // CSV header
-        let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,isSaccade,velocity,trial,dotPosition\n';
+        let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,isSaccade,trial,dotPosition\n';
 
         // CSV rows
         this.trackingData.forEach(point => {
@@ -202,7 +203,7 @@ class IrisFaceMeshTracker {
             csv += `${point.leftIris.x},${point.leftIris.y},`;
             csv += `${point.rightIris.x},${point.rightIris.y},`;
             csv += `${point.avgIris.x},${point.avgIris.y},`;
-            csv += `${point.isSaccade || false},${point.velocity || 0},`;
+            csv += `${point.isSaccade || false}`;
             csv += `${point.trial || ''},${point.dotPosition || ''}\n`;
         });
 

@@ -2,10 +2,13 @@
 // ,but we will add stuff from Anna's calibration to make it work correctly and accurately
 // TODO: change the degrees with the calibration from anna
 
-const HORIZONTAL_DEGREES = 45;
+const HORIZONTAL_DEGREES = 40;
 const VERTICAL_DEGREES = 30;
 const EYE_ROTATION_GAIN = 30;
+const SCREEN_WIDTH = 1920; // in pixels
+const SCREEN_HEIGHT = 1080; // in pixels
 
+// function to calculate the instant velocity between two frames
 export const calculateInstantVelocity = (currentFrame, previousFrame) => {
 
     if (!currentFrame || !previousFrame) return 0;
@@ -20,6 +23,16 @@ export const calculateInstantVelocity = (currentFrame, previousFrame) => {
     const dLx = currentFrame.leftIris.x - previousFrame.leftIris.x;
     const dLy = currentFrame.leftIris.y - previousFrame.leftIris.y;
 
+    // Conver normalized iris delta to Pixel
+    const dx_pixels = dLx * SCREEN_WIDTH;
+    const dy_pixels = dLy * SCREEN_HEIGHT;
+    const distance_pixels = Math.sqrt(dx_pixels**2 + dy_pixels**2); // calc euclidean distance in pixels
+    const pixels_per_degree_x = SCREEN_WIDTH / HORIZONTAL_DEGREES; // pixels to/per degree conversion
+    const pixels_per_degree_y = SCREEN_HEIGHT / VERTICAL_DEGREES; // pixels to/per degree conversion
+    const dist_degrees = distance_pixels / ((pixels_per_degree_x + pixels_per_degree_y)/2); // convert distance to degrees
+    const velocity_dps = dist_degrees / timeDelta; // degrees per second
+    // ==================================================================
+
     const leftDistDeg = Math.sqrt((dLx * HORIZONTAL_DEGREES * EYE_ROTATION_GAIN) ** 2 + (dLy * VERTICAL_DEGREES * EYE_ROTATION_GAIN) ** 2);
 
     // now the calculations for the right eye
@@ -33,7 +46,8 @@ export const calculateInstantVelocity = (currentFrame, previousFrame) => {
     console.log(avgDistDeg);
 
     // return the velocity
-    return avgDistDeg / timeDelta;
+   //return avgDistDeg / timeDelta;
+    return velocity_dps;
 }
 
 
