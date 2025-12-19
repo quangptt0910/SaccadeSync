@@ -12,7 +12,7 @@ export let calibrationModel = {
 export let runningDot = false;
 export let abortDot = false;
 
-// calibration points (screen ratios)
+// utils points (screen ratios)
 export const CALIBRATION_POINTS = [
     { x: 0.1, y: 0.1, label: "Top-Left" },
     { x: 0.5, y: 0.1, label: "Top-Center" },

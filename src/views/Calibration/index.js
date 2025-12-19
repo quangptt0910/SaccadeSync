@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { initCalibration } from "../../screens/calibration/calibration";
+import { initCalibration } from "./utils/calibration";
 import "./Calibration.css";
 
 export default function Calibration() {

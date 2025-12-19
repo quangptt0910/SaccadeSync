@@ -9,14 +9,14 @@ export function initDomRefs() {
     refs.staticPreview = document.getElementById("static-preview");
 
     refs.statusEl = document.getElementById("distance-status");
-    refs.startBtn = document.getElementById("start-calibration-btn");
+    refs.startBtn = document.getElementById("start-utils-btn");
     refs.stopBtn = document.getElementById("stop-calibration-btn");
 
     refs.distanceOverlay = document.getElementById("distance-overlay");
     refs.overlayStatusText = document.getElementById("overlay-status-text");
     refs.overlayInstructions = document.getElementById("overlay-instructions");
     refs.runCalibBtnOverlay =
-        document.getElementById("run-calibration-btn-overlay");
+        document.getElementById("run-utils-btn-overlay");
 
     refs.parameterDisplay =
         document.getElementById("calibration-parameters");
