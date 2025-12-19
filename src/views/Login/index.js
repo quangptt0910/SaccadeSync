@@ -7,8 +7,7 @@ import { Button, Input } from '../../components';
 import './Login.css';
 
 const initialRegisterData = {
-  name: '',
-  surname: '',
+  username: '',
   dateOfBirth: '',
   gender: '',
   medications: '',
@@ -71,8 +70,7 @@ const Login = () => {
           return;
         }
         await register(registerData.email, registerData.password, {
-          name: registerData.name,
-          surname: registerData.surname,
+          username: registerData.username,
           dateOfBirth: registerData.dateOfBirth,
           gender: registerData.gender,
           medications: registerData.medications,
@@ -106,24 +104,14 @@ const Login = () => {
           {isRegister ? (
             <>
               <h2 className="form-section-title">Personal Information</h2>
-              <div className="form-row">
-                <Input
-                  label="Name"
-                  type="text"
-                  name="name"
-                  placeholder="Enter name here"
-                  value={registerData.name}
-                  onChange={handleRegisterChange}
-                />
-                <Input
-                  label="Surname"
-                  type="text"
-                  name="surname"
-                  placeholder="Enter surname here"
-                  value={registerData.surname}
-                  onChange={handleRegisterChange}
-                />
-              </div>
+              <Input
+                label="Username"
+                type="text"
+                name="username"
+                placeholder="Enter username here"
+                value={registerData.username}
+                onChange={handleRegisterChange}
+              />
               <div className="form-row">
                 <div className="input-group">
                   <label className="input-label">Date of Birth</label>

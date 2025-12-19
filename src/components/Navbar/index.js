@@ -17,11 +17,11 @@ const Navbar = () => {
   };
 
   const getDisplayName = () => {
-    if (user?.name) {
-      return user.name;
+    if (user?.username) {
+      return user.username;
     }
     if (user?.displayName) {
-      return user.displayName.split(' ')[0];
+      return user.displayName;
     }
     return 'User';
   };
