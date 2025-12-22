@@ -55,7 +55,7 @@ export async function startDistanceCheck() {
         await refs.video.play();
         cameraLoop();
     } catch (err) {
-        console.error("Camera access denied:", err);
+        console.error("Camera error:", err);
         stopDistanceCheck();
     }
 }

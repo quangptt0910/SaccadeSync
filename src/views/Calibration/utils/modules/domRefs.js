@@ -8,7 +8,6 @@ export function initDomRefs() {
     refs.videoContainer = document.querySelector(".video-container");
     refs.staticPreview = document.getElementById("static-preview");
 
-    refs.statusEl = document.getElementById("distance-status");
     refs.startBtn = document.getElementById("start-calibration-btn");
     refs.stopBtn = document.getElementById("stop-calibration-btn");
 

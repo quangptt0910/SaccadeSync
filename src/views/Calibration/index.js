@@ -68,7 +68,6 @@ export default function Calibration() {
                 <div className="video-container">
                     <video
                         id="calibration-video"
-                        autoPlay
                         playsInline
                         muted
                     />
@@ -98,8 +97,6 @@ export default function Calibration() {
                         </button>
                     </div>
                 </div>
-
-                <p id="distance-status">STATUS: AWAITING START</p>
 
                 <button
                     id="stop-calibration-btn"

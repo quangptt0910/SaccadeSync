@@ -16,7 +16,6 @@ export function handleDistanceState(landmarks) {
         distanceOK = false;
         refs.overlayStatusText.textContent = "NO FACE";
         refs.overlayInstructions.textContent = "Position face in view.";
-        refs.statusEl.textContent = "No face";
         refs.runCalibBtnOverlay.style.display = "none";
         return false;
     }
@@ -27,7 +26,6 @@ export function handleDistanceState(landmarks) {
         distanceOK = false;
         refs.overlayStatusText.textContent = "TOO FAR";
         refs.overlayInstructions.textContent = "Move closer.";
-        refs.statusEl.textContent = "Too far";
         refs.runCalibBtnOverlay.style.display = "none";
         return false;
     }
@@ -36,7 +34,6 @@ export function handleDistanceState(landmarks) {
         distanceOK = false;
         refs.overlayStatusText.textContent = "TOO CLOSE";
         refs.overlayInstructions.textContent = "Move back.";
-        refs.statusEl.textContent = "Too close";
         refs.runCalibBtnOverlay.style.display = "none";
         return false;
     }
@@ -44,7 +41,6 @@ export function handleDistanceState(landmarks) {
     distanceOK = true;
     refs.overlayStatusText.textContent = "DISTANCE OK";
     refs.overlayInstructions.textContent = "Click Run Calibration.";
-    refs.statusEl.textContent = "Distance OK";
     refs.runCalibBtnOverlay.style.display = "inline-block";
     return true;
 }
