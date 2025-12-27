@@ -1,0 +1,34 @@
+.GameTest {
+    background-color: black;
+    min-height: calc(100vh - 60px);
+}
+
+.dot {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background-color: white;
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%); /* Center vertically */
+}
+
+.center-dot {
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.left-dot {
+    left: 10%;
+}
+
+.right-dot {
+    right: 10%;
+}
+
+.trial-counter {
+    color: white;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+}

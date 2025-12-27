@@ -1,0 +1,41 @@
+.results-page {
+  min-height: calc(100vh - 60px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #e8f4f8;
+  padding: 2rem;
+}
+
+.results-card {
+  background: white;
+  border-radius: 24px;
+  padding: 3rem;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.results-card h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+}
+
+.results-card p {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.results-placeholder {
+  padding: 2rem;
+  background-color: #f5f5f5;
+  border-radius: 12px;
+  margin-top: 1rem;
+}
+
+.results-placeholder p {
+  margin-bottom: 1rem;
+}

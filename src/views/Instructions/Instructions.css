@@ -1,0 +1,109 @@
+/* Instructions.css */
+
+/* --- Page Layout --- */
+.instructions-page {
+    min-height: 100vh;
+    background-color: #e8f4f8; /* Light grey background (secondary-background) */
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+.instructions-container {
+    width: 100%;
+    max-width: 900px; /* Limits width so lines aren't too long to read */
+    background-color: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 40px; /* Big spacing between major sections */
+}
+
+/* --- Typography & Text --- */
+.intro-text {
+    font-size: 1.125rem; /* 18px */
+    line-height: 1.7;
+    color: #374151; /* Dark grey text */
+    text-align: left;
+}
+
+.section-title {
+    font-size: 1.75rem; /* 28px */
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 20px;
+}
+
+.instruction-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #374151;
+}
+
+.highlight {
+    font-weight: 500;
+    color: #4b5563;
+}
+
+.bold-instruction {
+    font-weight: 700;
+    color: #1f2937; /* Darker black for emphasis */
+    background-color: #f3f4f6; /* Very subtle highlight background */
+    padding: 15px;
+    border-left: 4px solid #3b82f6; /* Blue accent line on the left */
+    display: block; /* Makes it a box */
+    border-radius: 4px;
+}
+
+/* --- Visuals --- */
+.visual-guide-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.visual-guide-img {
+    width: 100%;
+    max-width: 600px; /* Prevents image from getting massive */
+    height: auto;
+    object-fit: contain;
+}
+
+/* --- Utilities --- */
+.divider {
+    border: 0;
+    height: 1px;
+    background-color: #e5e7eb;
+    width: 100%;
+}
+
+.action-area {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    padding-bottom: 20px;
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 640px) {
+    .instructions-container {
+        padding: 20px;
+        gap: 30px;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+    }
+
+    .intro-text, .instruction-text {
+        font-size: 1rem;
+    }
+}
