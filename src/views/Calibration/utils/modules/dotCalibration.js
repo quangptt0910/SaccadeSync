@@ -36,6 +36,16 @@ export function showFsWarning() {
     refs.fsWarning.style.display = "flex";
     refs.fsWarningPanel.style.opacity = "1";
     refs.calDot.style.opacity = "0";
+
+    const h3 = refs.fsWarningPanel.querySelector("h3");
+    const p = refs.fsWarningPanel.querySelector("p");
+
+    if (refs.overlayStatusText && h3) {
+        h3.textContent = refs.overlayStatusText.textContent;
+    }
+    if (refs.overlayInstructions && p) {
+        p.textContent = refs.overlayInstructions.textContent;
+    }
 }
 
 export function hideFsWarning() {
@@ -102,10 +112,17 @@ export function getDotPoints() {
 export async function collectSamplesForPoint(idx, screenX, screenY) {
     let count = 0;
     while (count < SAMPLES_PER_POINT) {
-        if (abortDot || !runningDot) break;
+        if (abortDot || !runningDot) return false;
+
         if (!distanceOK) {
-            abortDot = true;
-            break;
+            while (!distanceOK && runningDot && !abortDot) {
+                await sleep(200);
+            }
+
+            if (abortDot || !runningDot) return false;
+
+            hideFsWarning();
+            return "RESTART";
         }
 
         const r = faceLandmarker.detectForVideo(refs.video, performance.now());
@@ -131,6 +148,7 @@ export async function collectSamplesForPoint(idx, screenX, screenY) {
         }
         await sleep(SAMPLE_INTERVAL_MS);
     }
+    return true;
 }
 
 export async function runDotCalibration(onComplete) {
@@ -145,31 +163,59 @@ export async function runDotCalibration(onComplete) {
     refs.calDot.style.opacity = "1";
     runningDot = true;
     abortDot = false;
-    gazeData = [];
 
-    const points = getDotPoints();
-    await placeDot(window.innerWidth/2, window.innerHeight/2);
-    await sleep(200);
+    while (runningDot && !abortDot) {
+        gazeData = [];
+        const points = getDotPoints();
+        await placeDot(window.innerWidth/2, window.innerHeight/2);
+        await sleep(200);
 
-    for (let i=0;i<points.length;i++) {
+        let restart = false;
+
+        for (let i=0;i<points.length;i++) {
+            if (abortDot) break;
+            const p = points[i];
+            await animateDotTo(p.x, p.y);
+
+            const result = await collectSamplesForPoint(i, p.x/window.innerWidth, p.y/window.innerHeight);
+
+            if (result === "RESTART") {
+                restart = true;
+                break;
+            }
+            if (result === false) {
+                break;
+            }
+
+            await sleep(WAIT_AFTER);
+        }
+
         if (abortDot) break;
-        const p = points[i];
-        await animateDotTo(p.x, p.y);
-        await collectSamplesForPoint(i, p.x/window.innerWidth, p.y/window.innerHeight);
-        await sleep(WAIT_AFTER);
+
+        if (restart) {
+            continue;
+        }
+
+        runningDot = false;
+        refs.calDot.style.opacity = "0";
+        refs.dotStage.style.display = "none";
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+
+        displayCalibrationParameters();
+        displayPredictionModel();
+        return;
     }
 
     runningDot = false;
     refs.calDot.style.opacity = "0";
     refs.dotStage.style.display = "none";
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-
     displayCalibrationParameters();
     const metrics = displayPredictionModel();
 
     if (onComplete && typeof onComplete === "function") {
-        onComplete({ 
-            gazeData, 
+        onComplete({
+            gazeData,
             calibrationModel,
             metrics
         });

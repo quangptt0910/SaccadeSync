@@ -96,8 +96,7 @@ export default function Calibration() {
                             <span>
                                 We verify that you are seated at the optimal
                                 distance. For best results, keep your face about
-                                <strong> 0.5 meters </strong>
-                                from the camera.
+                                <strong> 0.5 meters </strong> from the camera.
                             </span>
                         </li>
                         <li>
@@ -129,17 +128,15 @@ export default function Calibration() {
                 <div className="video-container">
                     <video
                         id="calibration-video"
-                        autoPlay
                         playsInline
                         muted
                     />
                     <canvas id="calibration-canvas" />
 
                     <div id="static-preview" className="show-flex">
-                        <h3>Camera Preview</h3>
+                        <h3>Distance check</h3>
                         <p>
-                            Click <strong>Start Check</strong> to begin gaze
-                            calibration.
+                            Click <strong>Start Check</strong> to begin
                         </p>
                         <button
                             id="start-calibration-btn"
@@ -151,7 +148,7 @@ export default function Calibration() {
 
                     <div id="distance-overlay">
                         <p id="overlay-status-text">SYSTEM INACTIVE</p>
-                        <p id="overlay-instructions">Click Start Check</p>
+                        <p id="overlay-instructions">Loading a camera...</p>
                         <button
                             id="run-calibration-btn-overlay"
                             className="btn btn-primary"
@@ -160,8 +157,6 @@ export default function Calibration() {
                         </button>
                     </div>
                 </div>
-
-                <p id="distance-status">STATUS: AWAITING START</p>
 
                 <button
                     id="stop-calibration-btn"
