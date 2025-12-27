@@ -91,17 +91,17 @@
     padding: 2rem 1.5rem;
     text-align: center;
   }
-  
+
   .hero__description, .cta__description {
     max-width: 100%;
     margin: 0 auto;
   }
-  
+
   .hero__image img,
   .cta__image img {
     max-width: 300px;
   }
-  
+
   .navbar {
     padding: 1rem 1.5rem;
   }
@@ -112,11 +112,11 @@
   .cta__title {
     font-size: 2rem;
   }
-  
+
   .navbar__logo {
     font-size: 1.25rem;
   }
-  
+
   .navbar__link {
     font-size: 0.85rem;
     padding: 0.4rem 0.8rem;

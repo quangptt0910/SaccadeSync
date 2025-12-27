@@ -1,5 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated, selectAuthLoading } from '../../store/authSlice';
 import { Button } from '../../components';
 import './Home.css';
 
@@ -8,6 +10,18 @@ const eyeImage = 'https://images.unsplash.com/photo-1494869042583-f6c911f04b4c?w
 const adhdImage = 'https://images.unsplash.com/photo-1559757175-5700dde675bc?w=400&h=400&fit=crop';
 
 const Home = () => {
+  const navigate = useNavigate();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const isLoading = useSelector(selectAuthLoading);
+
+  const handleStartProcess = () => {
+    if (isAuthenticated) {
+      navigate('/calibration');
+    } else {
+      navigate('/login', { state: { from: '/calibration' } });
+    }
+  };
+
   return (
     <div className="home">
       {/* Hero Section */}
@@ -33,9 +47,13 @@ const Home = () => {
           <p className="cta__description">
             With some eye-tracking tests we can find identifying traits of ADHD or fatigue based on your results.
           </p>
-          <Link to="/instructions">
-            <Button variant="primary">Start the process</Button>
-          </Link>
+          <Button 
+            variant="primary" 
+            onClick={handleStartProcess}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Loading...' : 'Start the process'}
+          </Button>
         </div>
       </section>
     </div>
