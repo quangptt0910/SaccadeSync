@@ -202,22 +202,30 @@ export async function runDotCalibration(onComplete) {
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 
         displayCalibrationParameters();
-        displayPredictionModel();
-        return;
+        //displayPredictionModel();
+        const metrics = displayPredictionModel();
+        //return;
+        if (onComplete && typeof onComplete === "function") {
+            onComplete({
+                gazeData,
+                calibrationModel,
+                metrics
+            });
+        }
     }
 
-    runningDot = false;
-    refs.calDot.style.opacity = "0";
-    refs.dotStage.style.display = "none";
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    displayCalibrationParameters();
-    const metrics = displayPredictionModel();
-
-    if (onComplete && typeof onComplete === "function") {
-        onComplete({
-            gazeData,
-            calibrationModel,
-            metrics
-        });
-    }
+    // runningDot = false;
+    // refs.calDot.style.opacity = "0";
+    // refs.dotStage.style.display = "none";
+    // if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    // displayCalibrationParameters();
+    // const metrics = displayPredictionModel();
+    //
+    // if (onComplete && typeof onComplete === "function") {
+    //     onComplete({
+    //         gazeData,
+    //         calibrationModel,
+    //         metrics
+    //     });
+    // }
 }

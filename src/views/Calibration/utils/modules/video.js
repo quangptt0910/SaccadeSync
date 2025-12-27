@@ -76,4 +76,6 @@ export function stopDistanceCheck() {
 
     refs.stopBtn.style.display = "none";
     refs.distanceOverlay.style.display = "none";
+
+    console.log("Distance check stopped")
 }

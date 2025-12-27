@@ -55,7 +55,7 @@ export default function Calibration() {
             // Note: data.metrics.details contains the raw accuracy numbers (0.0 - 1.0)
             const leftAcc = data.metrics?.details?.left || 0;
             const rightAcc = data.metrics?.details?.right || 0;
-            const threshold = 0.85;
+            const threshold = 0.8;
 
             if (leftAcc > threshold || rightAcc > threshold) {
                 setCalibrationStatus("success");
