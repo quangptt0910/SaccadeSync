@@ -137,4 +137,11 @@ export function displayPredictionModel() {
     } else {
         parameterDisplay.innerHTML += `<p style="color:crimson;font-weight:700;">Calibration below threshold. Consider recalibration.</p>`;
     }
+
+    // Return metrics for saving
+    return {
+        accuracy: {left: leftRes.success, right: rightRes.success },
+        rmse: {left: leftRes.success && rightRes.success },
+        details: { left: leftRes.accuracy, right: rightRes.accuracy }
+    };
 }

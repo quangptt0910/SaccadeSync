@@ -133,7 +133,7 @@ export async function collectSamplesForPoint(idx, screenX, screenY) {
     }
 }
 
-export async function runDotCalibration() {
+export async function runDotCalibration(onComplete) {
     if (!distanceOK) {
         alert("Distance not OK");
         return;
@@ -165,5 +165,13 @@ export async function runDotCalibration() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 
     displayCalibrationParameters();
-    displayPredictionModel();
+    const metrics = displayPredictionModel();
+
+    if (onComplete && typeof onComplete === "function") {
+        onComplete({ 
+            gazeData, 
+            calibrationModel,
+            metrics
+        });
+    }
 }

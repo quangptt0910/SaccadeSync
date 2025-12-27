@@ -1,11 +1,71 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../firebase";
 import { initCalibration } from "./utils/calibration";
+import { setCalibrationResult } from "../../store/calibrationSlice";
+import { selectUser } from "../../store/authSlice";
+import Button from "../../components/Button";
 import "./Calibration.css";
 
 export default function Calibration() {
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const user = useSelector(selectUser);
+    const [calibrationStatus, setCalibrationStatus] = useState("idle"); // 'idle' | 'success' | 'failed'
+
     useEffect(() => {
-        initCalibration();
-    }, []);
+        // Structured helper to handle Firebase persistence
+        const saveCalibrationToFirebase = async (uid, data) => {
+            try {
+                const calibrationRef = collection(db, "users", uid, "calibrations");
+                await addDoc(calibrationRef, {
+                    timestamp: serverTimestamp(),
+                    model: data.calibrationModel,
+                    metrics: data.metrics,
+                    userAgent: navigator.userAgent
+                });
+                console.log("Calibration data successfully saved to Firebase.");
+            } catch (error) {
+                console.error("Error saving calibration data:", error);
+                // dispatch an error toast action here
+            }
+        };
+
+        const handleCalibrationComplete = async (data) => {
+            console.log("Calibration finished:", data);
+
+            // Ensure the test was actually performed and generated sufficient data
+            // If gazeData is empty or very small, it likely means the test was aborted or failed early.
+            if (!data || !data.gazeData || data.gazeData.length < 10) {
+                console.log("Calibration aborted or insufficient data collected. Skipping save and accuracy check.");
+                return;
+            }
+
+            // 1. Save to Redux Store (Global State)
+            dispatch(setCalibrationResult(data));
+
+            // 2. Save to Firebase (Persistence)
+            if (user?.uid) {
+                await saveCalibrationToFirebase(user.uid, data);
+            }
+
+            // 3. Check Accuracy Threshold
+            // Note: data.metrics.details contains the raw accuracy numbers (0.0 - 1.0)
+            const leftAcc = data.metrics?.details?.left || 0;
+            const rightAcc = data.metrics?.details?.right || 0;
+            const threshold = 0.85;
+
+            if (leftAcc > threshold || rightAcc > threshold) {
+                setCalibrationStatus("success");
+            } else {
+                setCalibrationStatus("failed");
+            }
+        };
+
+        initCalibration(handleCalibrationComplete);
+    }, [dispatch, user]);
 
     return (
         <div id="calibration-root">
@@ -112,6 +172,30 @@ export default function Calibration() {
                 </button>
 
                 <div id="calibration-parameters" />
+
+                {/* Post-Calibration Actions */}
+                {calibrationStatus === "success" && (
+                    <div className="calibration-actions" style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '2rem' }}>
+                        <p style={{ color: '#27ae60', fontWeight: 'bold', marginBottom: '1rem' }}>
+                            Calibration Successful! You may proceed.
+                        </p>
+                        <Button 
+                            className="btn--primary" 
+                            onClick={() => navigate("/gameTest")}
+                        >
+                            Proceed to Game Test
+                        </Button>
+                    </div>
+                )}
+
+                {calibrationStatus === "failed" && (
+                    <div className="calibration-actions" style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '2rem' }}>
+                        <p style={{ color: '#c0392b', fontWeight: 'bold', marginBottom: '1rem' }}>
+                            Accuracy too low. Please try again.
+                        </p>
+                        <Button className="btn--secondary" onClick={() => window.location.reload()}>Retry Calibration</Button>
+                    </div>
+                )}
             </div>
 
             <div id="dot-stage">

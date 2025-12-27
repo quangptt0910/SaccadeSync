@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectAuthLoading, selectAuthError, setError } from '../../store/authSlice';
 import { useAuth } from '../../hooks';
@@ -26,6 +26,7 @@ const validateDate = (dateStr) => {
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { signIn, register } = useAuth();
   const loading = useSelector(selectAuthLoading);
@@ -36,6 +37,8 @@ const Login = () => {
     password: ''
   });
   const [registerData, setRegisterData] = useState(initialRegisterData);
+
+  const from = location.state?.from;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,10 +80,10 @@ const Login = () => {
           familyHistory: registerData.familyHistory,
           conditions: registerData.conditions,
         });
-        navigate('/');
+        navigate(from || '/');
       } else {
         await signIn(formData.email, formData.password);
-        navigate('/results');
+        navigate(from || '/');
       }
     } catch (err) {
       // Error handled by hook
@@ -91,6 +94,7 @@ const Login = () => {
     setIsRegister(!isRegister);
     setFormData({ email: '', password: '' });
     setRegisterData(initialRegisterData);
+    dispatch(setError(null));
   };
 
   return (
@@ -218,13 +222,13 @@ const Login = () => {
           )}
           
           <Button type="submit" variant="primary" fullWidth disabled={loading}>
-            {loading ? 'Loading...' : isRegister ? 'Sign Up' : 'Sign in'}
+            {loading ? 'Loading...' : isRegister ? 'Sign Up' : 'Login'}
           </Button>
           
           <p className="register-link">
             {isRegister ? 'Already have an account? ' : "Don't have an account? "}
             <button type="button" className="toggle-mode" onClick={toggleMode}>
-              {isRegister ? 'Sign in here' : 'Register here'}
+              {isRegister ? 'Login here' : 'Register here'}
             </button>
           </p>
         </form>
