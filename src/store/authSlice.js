@@ -4,7 +4,7 @@ const initialState = {
   user: null,
   isAuthenticated: false,
   loading: false,
-  error: null,
+  error: null
 };
 
 const authSlice = createSlice({
@@ -26,14 +26,12 @@ const authSlice = createSlice({
     setError: (state, action) => {
       state.error = action.payload;
       state.loading = false;
-    },
-  },
+    }
+  }
 });
 
-// Actions
 export const { login, logout, setLoading, setError } = authSlice.actions;
 
-// Selectors
 export const selectUser = (state) => state.auth.user;
 export const selectIsAuthenticated = (state) => state.auth.isAuthenticated;
 export const selectAuthLoading = (state) => state.auth.loading;

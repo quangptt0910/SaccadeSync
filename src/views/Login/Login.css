@@ -14,6 +14,11 @@
   width: 100%;
   max-width: 450px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: max-width 0.3s ease;
+}
+
+.login-card--wide {
+  max-width: 700px;
 }
 
 .login-title {
@@ -54,4 +59,89 @@
 
 .register-link a:hover {
   text-decoration: underline;
+}
+
+.login-error {
+  color: #dc3545;
+  background: #f8d7da;
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.toggle-mode {
+  background: none;
+  border: none;
+  color: #5a9aa8;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+}
+
+.toggle-mode:hover {
+  text-decoration: underline;
+}
+
+.form-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .login-card--wide {
+    max-width: 450px;
+  }
+}
+
+.forgot-password {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.input-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: white;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+}
+
+.input-select:focus {
+  outline: none;
+  border-color: #5a9aa8;
 }
