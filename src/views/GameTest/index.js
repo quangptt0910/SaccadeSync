@@ -1,5 +1,10 @@
 import React, {useState, useEffect, useRef} from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectCalibrationModel, selectIsCalibrated, setCalibrationResult } from '../../store/calibrationSlice';
+import { selectUser } from '../../store/authSlice';
+import { db } from '../../firebase';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import Modal from '../../components/Modal';
 import './GameTest.css';
 import IrisFaceMeshTracker from "./utils/iris-facemesh";
@@ -8,12 +13,17 @@ import {analyzeSaccadeData} from './utils/saccadeData';
 const GameTest = () => {
 
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const calibrationModel = useSelector(selectCalibrationModel);
+    const isCalibrated = useSelector(selectIsCalibrated);
+    const user = useSelector(selectUser);
 
     // state management
     const [isStarted, setIsStarted] = useState(false);
     const [dotPosition, setDotPosition] = useState('hidden');
     const [trialCount, setTrialCount] = useState(0);
     const [isFinished, setIsFinished] = useState(false);
+    const [isLoadingCalibration, setIsLoadingCalibration] = useState(false);
 
     // calculated results for final report
     const [testResults, setTestResults] = useState([]);
@@ -35,6 +45,59 @@ const GameTest = () => {
     // This tracks if the component is currently on the screen
     const mounted = useRef(true);
 
+    // Helper to check if model is valid (not all zeros)
+    const isModelValid = (model) => {
+        if (!model || !model.left || !model.left.coefX) return false;
+        // Check if at least one coefficient in left eye X is non-zero
+        return model.left.coefX.some(c => c !== 0);
+    };
+
+    // Fetch calibration from Firebase if not in Redux
+    useEffect(() => {
+        const fetchCalibration = async () => {
+            // If we are already calibrated and model is valid, no need to fetch
+            if (isCalibrated && isModelValid(calibrationModel)) return;
+            
+            if (!user?.uid) return;
+
+            // Load the latest calibration
+            setIsLoadingCalibration(true);
+            try {
+                console.log("Fetching calibration from Firebase for user:", user.uid);
+                const q = query(
+                    collection(db, "users", user.uid, "calibrations"),
+                    orderBy("timestamp", "desc"),
+                    limit(1)
+                );
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const docData = querySnapshot.docs[0].data();
+                    console.log("Calibration found in Firebase:", docData);
+                    
+                    if (docData.model && isModelValid(docData.model)) {
+                        dispatch(setCalibrationResult({
+                            model: docData.model,
+                            metrics: docData.metrics || {},
+                            gazeData: [] // Gaze data not needed for game
+                        }));
+                        console.log("Restored calibration to Redux");
+                    } else {
+                        console.warn("Fetched calibration model is invalid (zeros)");
+                    }
+                } else {
+                    console.log("No calibration found in Firebase");
+                }
+            } catch (e) {
+                console.error("Error fetching calibration:", e);
+            } finally {
+                setIsLoadingCalibration(false);
+            }
+        };
+
+        fetchCalibration();
+    }, [isCalibrated, user, dispatch]); // Removed calibrationModel from deps to avoid loops, relying on isCalibrated
+
     // full screen logic
     const enterFullScreen = () => {
         const elem = document.documentElement; // The whole page
@@ -55,6 +118,16 @@ const GameTest = () => {
             irisTracker.current = new IrisFaceMeshTracker();
             await irisTracker.current.initialize();
         }
+
+        // Pass calibration model if available and valid
+        // We check Redux state again here
+        if (isCalibrated && isModelValid(calibrationModel)) {
+            console.log("Using calibration model:", calibrationModel);
+            irisTracker.current.setCalibrationModel(calibrationModel);
+        } else {
+            console.warn("No valid calibration found (isCalibrated=" + isCalibrated + "). Using raw iris data.");
+        }
+
         await irisTracker.current.startTracking();
 
         setIsStarted(true); // 3. Start the logic
@@ -170,9 +243,10 @@ const GameTest = () => {
                     <Modal
                         show={!isStarted}
                         title="Saccade Test"
-                        message="The test will run in full screen."
-                        buttonText="Start Test"
+                        message={isLoadingCalibration ? "Loading calibration..." : "The test will run in full screen."}
+                        buttonText={isLoadingCalibration ? "Please Wait" : "Start Test"}
                         onConfirm={() => {handleStartTest()}}
+                        disabled={isLoadingCalibration}
                     />
             )}
 
