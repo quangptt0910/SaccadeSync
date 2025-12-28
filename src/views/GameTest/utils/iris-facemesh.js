@@ -236,6 +236,24 @@ class IrisFaceMeshTracker {
             const lastPoint = this.trackingData[this.trackingData.length - 1];
             lastPoint.trial = trialNumber;
             lastPoint.dotPosition = dotPosition;
+            
+            // Add target coordinates based on dotPosition
+            let targetX = null;
+            let targetY = null;
+            
+            if (dotPosition === 'center' || dotPosition.includes('center')) {
+                targetX = 0.5;
+                targetY = 0.5;
+            } else if (dotPosition === 'left' || dotPosition.includes('left')) {
+                targetX = 0.1;
+                targetY = 0.5;
+            } else if (dotPosition === 'right' || dotPosition.includes('right')) {
+                targetX = 0.9;
+                targetY = 0.5;
+            }
+            
+            lastPoint.targetX = targetX;
+            lastPoint.targetY = targetY;
         }
     }
 
@@ -247,7 +265,7 @@ class IrisFaceMeshTracker {
         }
 
         // CSV header
-        let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,cal_left_x,cal_left_y,cal_right_x,cal_right_y,cal_avg_x,cal_avg_y,isSaccade,trial,dotPosition\n';
+        let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,cal_left_x,cal_left_y,cal_right_x,cal_right_y,cal_avg_x,cal_avg_y,isSaccade,trial,dotPosition,targetX,targetY\n';
 
         // CSV rows
         this.trackingData.forEach(point => {
@@ -264,7 +282,8 @@ class IrisFaceMeshTracker {
             csv += `${c.avg?.x ?? ''},${c.avg?.y ?? ''},`;
 
             csv += `${point.isSaccade || false},`;
-            csv += `${point.trial || ''},${point.dotPosition || ''}\n`;
+            csv += `${point.trial || ''},${point.dotPosition || ''},`;
+            csv += `${point.targetX ?? ''},${point.targetY ?? ''}\n`;
         });
 
         // Download CSV

@@ -229,8 +229,7 @@ const GameTest = () => {
                     const analysis = analyzeSaccadeData(allData, dotAppearanceTime);
 
                     // This should now print a real number (e.g., 200-500 deg/s)
-                    console.log(`Phase: ${testPhase}, Trial ${i+1}, Peak Velocity:`, analysis.peakVelocity);
-
+                    console.log(`Phase: ${testPhase}, Trial ${i+1}, Peak Velocity: ${analysis.peakVelocity}, isSaccade: ${analysis.isSaccade}`);
                     // Store result if needed
                     // currentSessionResults.push(analysis);
                 }
@@ -257,7 +256,7 @@ const GameTest = () => {
                         }, 1000);
                     }
                     setIsFinished(true);
-                    if (document.exitFullscreen) document.exitFullscreen();
+                    if (document.exitFullscreen) await document.exitFullscreen();
                 }
             }
         };
