@@ -16,6 +16,8 @@ export default function Calibration() {
     const [calibrationStatus, setCalibrationStatus] = useState("idle"); // 'idle' | 'success' | 'failed'
 
     useEffect(() => {
+        let cleanupFunc = null;
+
         // Structured helper to handle Firebase persistence
         const saveCalibrationToFirebase = async (uid, data) => {
             try {
@@ -43,28 +45,35 @@ export default function Calibration() {
                 return;
             }
 
-            // 1. Save to Redux Store (Global State)
-            dispatch(setCalibrationResult(data));
-
-            // 2. Save to Firebase (Persistence)
-            if (user?.uid) {
-                await saveCalibrationToFirebase(user.uid, data);
-            }
-
-            // 3. Check Accuracy Threshold
+            // Check Accuracy Threshold
             // Note: data.metrics.details contains the raw accuracy numbers (0.0 - 1.0)
             const leftAcc = data.metrics?.details?.left || 0;
             const rightAcc = data.metrics?.details?.right || 0;
-            const threshold = 0.8;
+            const threshold = 0.85;
 
             if (leftAcc > threshold || rightAcc > threshold) {
+                // 1. Save to Redux Store (Global State)
+                dispatch(setCalibrationResult(data));
+
+                // 2. Save to Firebase (Persistence)
+                if (user?.uid) {
+                    await saveCalibrationToFirebase(user.uid, data);
+                }
                 setCalibrationStatus("success");
             } else {
                 setCalibrationStatus("failed");
             }
         };
 
-        initCalibration(handleCalibrationComplete);
+        const init = async () => {
+            cleanupFunc = await initCalibration(handleCalibrationComplete);
+        };
+
+        init();
+
+        return () => {
+            if (cleanupFunc) cleanupFunc();
+        };
     }, [dispatch, user]);
 
     return (
@@ -176,9 +185,9 @@ export default function Calibration() {
                         </p>
                         <Button 
                             className="btn--primary" 
-                            onClick={() => navigate("/gameTest")}
+                            onClick={() => navigate("/instructions")}
                         >
-                            Proceed to Game Test
+                            Proceed to Instructions before the test
                         </Button>
                     </div>
                 )}

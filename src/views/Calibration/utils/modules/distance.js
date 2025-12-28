@@ -3,7 +3,7 @@ import { refs } from "./domRefs.js";
 export let distanceOK = false;
 
 const FAR = 0.12;
-const CLOSE = 0.20;
+const CLOSE = 0.25;
 
 export function computeEyeDistance(lm) {
     const l = lm[33];

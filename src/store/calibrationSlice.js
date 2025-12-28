@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+// Calibration DATA to be saved in DB and used in GameTEST
 const initialState = {
   model: {
     left: { coefX: [0, 0, 0, 0, 0, 0], coefY: [0, 0, 0, 0, 0, 0] },

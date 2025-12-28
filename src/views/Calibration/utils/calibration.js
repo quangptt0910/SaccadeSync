@@ -11,7 +11,16 @@ export async function initCalibration(onComplete) {
     const stopBtn = document.getElementById("stop-calibration-btn");
     const runBtn = document.getElementById("run-calibration-btn-overlay");
 
+    const handleRunClick = () => runDotCalibration(onComplete);
+
     startBtn?.addEventListener("click", startDistanceCheck);
     stopBtn?.addEventListener("click", stopDistanceCheck);
-    runBtn?.addEventListener("click", () => runDotCalibration(onComplete));
+    runBtn?.addEventListener("click", handleRunClick);
+
+    // Return a cleanup function
+    return () => {
+        startBtn?.removeEventListener("click", startDistanceCheck);
+        stopBtn?.removeEventListener("click", stopDistanceCheck);
+        runBtn?.removeEventListener("click", handleRunClick);
+    };
 }

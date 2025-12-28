@@ -1,5 +1,10 @@
 import React, {useState, useEffect, useRef} from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectCalibrationModel, selectIsCalibrated, setCalibrationResult } from '../../store/calibrationSlice';
+import { selectUser } from '../../store/authSlice';
+import { db } from '../../firebase';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import Modal from '../../components/Modal';
 import './GameTest.css';
 import IrisFaceMeshTracker from "./utils/iris-facemesh";
@@ -8,12 +13,21 @@ import {analyzeSaccadeData} from './utils/saccadeData';
 const GameTest = () => {
 
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const calibrationModel = useSelector(selectCalibrationModel);
+    const isCalibrated = useSelector(selectIsCalibrated);
+    const user = useSelector(selectUser);
 
     // state management
     const [isStarted, setIsStarted] = useState(false);
     const [dotPosition, setDotPosition] = useState('hidden');
     const [trialCount, setTrialCount] = useState(0);
     const [isFinished, setIsFinished] = useState(false);
+    const [isLoadingCalibration, setIsLoadingCalibration] = useState(false);
+
+    // track which test it will be and the break
+    const [testPhase, setTestPhase] = useState('pro');
+    const [showBreak, setShowBreak] = useState(false);
 
     // calculated results for final report
     const [testResults, setTestResults] = useState([]);
@@ -35,6 +49,59 @@ const GameTest = () => {
     // This tracks if the component is currently on the screen
     const mounted = useRef(true);
 
+    // Helper to check if model is valid (not all zeros)
+    const isModelValid = (model) => {
+        if (!model || !model.left || !model.left.coefX) return false;
+        // Check if at least one coefficient in left eye X is non-zero
+        return model.left.coefX.some(c => c !== 0);
+    };
+
+    // Fetch calibration from Firebase if not in Redux
+    useEffect(() => {
+        const fetchCalibration = async () => {
+            // If we are already calibrated and model is valid, no need to fetch
+            if (isCalibrated && isModelValid(calibrationModel)) return;
+            
+            if (!user?.uid) return;
+
+            // Load the latest calibration
+            setIsLoadingCalibration(true);
+            try {
+                console.log("Fetching calibration from Firebase for user:", user.uid);
+                const q = query(
+                    collection(db, "users", user.uid, "calibrations"),
+                    orderBy("timestamp", "desc"),
+                    limit(1)
+                );
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const docData = querySnapshot.docs[0].data();
+                    console.log("Calibration found in Firebase:", docData);
+                    
+                    if (docData.model && isModelValid(docData.model)) {
+                        dispatch(setCalibrationResult({
+                            model: docData.model,
+                            metrics: docData.metrics || {},
+                            gazeData: [] // Gaze data not needed for game
+                        }));
+                        console.log("Restored calibration to Redux");
+                    } else {
+                        console.warn("Fetched calibration model is invalid (zeros)");
+                    }
+                } else {
+                    console.log("No calibration found in Firebase");
+                }
+            } catch (e) {
+                console.error("Error fetching calibration:", e);
+            } finally {
+                setIsLoadingCalibration(false);
+            }
+        };
+
+        fetchCalibration();
+    }, [isCalibrated, user, dispatch]); // Removed calibrationModel from deps to avoid loops, relying on isCalibrated
+
     // full screen logic
     const enterFullScreen = () => {
         const elem = document.documentElement; // The whole page
@@ -47,7 +114,8 @@ const GameTest = () => {
         }
     };
 
-    const handleStartTest = async () => {
+    // start the test with the pro saccades
+    const handleStartProTest = async () => {
         enterFullScreen(); // 1. Go Full Screen
 
         // 2. Initialize and start iris tracking
@@ -55,11 +123,34 @@ const GameTest = () => {
             irisTracker.current = new IrisFaceMeshTracker();
             await irisTracker.current.initialize();
         }
+
+        // Pass calibration model if available and valid
+        // We check Redux state again here
+        if (isCalibrated && isModelValid(calibrationModel)) {
+            console.log("Using calibration model:", calibrationModel);
+            irisTracker.current.setCalibrationModel(calibrationModel);
+        } else {
+            console.warn("No valid calibration found (isCalibrated=" + isCalibrated + "). Using raw iris data.");
+        }
+
         await irisTracker.current.startTracking();
 
         setIsStarted(true); // 3. Start the logic
 
     };
+
+
+    // start the second phase which is the anti saccades
+    const handleStartAntiTest = async () => {
+        enterFullScreen();
+
+        setTrialCount(0);
+
+        // change the phase to be anti
+        setTestPhase('anti');
+        setShowBreak(false);
+    };
+
 
     // Cleanup function: sets mounted to false when you leave the page
     useEffect(() => {
@@ -81,13 +172,18 @@ const GameTest = () => {
 
 
     useEffect(() => {
-        if (!isStarted) return; // Don't run logic yet
+        if (!isStarted || isFinished || showBreak) return; // Don't run logic yet
 
         const runTest = async () => {
             await wait(1000); // Buffer time
 
             // collect results for the saccade parameters
             const currentSessionResults = []
+
+            if (irisTracker.current) {
+                // Useful marker in your CSV to know where phase 2 starts
+                irisTracker.current.addTrialContext(0, `START_${testPhase.toUpperCase()}_PHASE`);
+            }
 
             for (let i = 0; i < trialsAmount; i++) {
                 if (!mounted.current) break;
@@ -96,7 +192,7 @@ const GameTest = () => {
                 // 1. Fixation
                 setDotPosition('center');
                 if (irisTracker.current) {
-                    irisTracker.current.addTrialContext(i + 1, 'center');
+                    irisTracker.current.addTrialContext(i + 1, `${testPhase} - center`);
                 }
                 await wait(getFixationTime());
 
@@ -104,7 +200,7 @@ const GameTest = () => {
                 if (!mounted.current) break;
                 setDotPosition('hidden');
                 if (irisTracker.current) {
-                    irisTracker.current.addTrialContext(i + 1, 'gap');
+                    irisTracker.current.addTrialContext(i + 1, `${testPhase} - gap`);
                 }
                 await wait(gapTimeBetweenCenterDot);
 
@@ -120,6 +216,9 @@ const GameTest = () => {
                 if (irisTracker.current) {
                     irisTracker.current.addTrialContext(i + 1, side);
                 }
+                if (irisTracker.current) {
+                    irisTracker.current.addTrialContext(i + 1, `${testPhase}-${side}`);
+                }
                 await wait(sideDotShowTime);
 
                 if (irisTracker.current) {
@@ -130,7 +229,7 @@ const GameTest = () => {
                     const analysis = analyzeSaccadeData(allData, dotAppearanceTime);
 
                     // This should now print a real number (e.g., 200-500 deg/s)
-                    console.log(`Trial ${i+1} Peak Velocity:`, analysis.peakVelocity);
+                    console.log(`Phase: ${testPhase}, Trial ${i+1}, Peak Velocity:`, analysis.peakVelocity);
 
                     // Store result if needed
                     // currentSessionResults.push(analysis);
@@ -140,45 +239,61 @@ const GameTest = () => {
                 if (!mounted.current) break;
                 setDotPosition('hidden');
                 if (irisTracker.current) {
-                    irisTracker.current.addTrialContext(i + 1, 'interval');
+                    irisTracker.current.addTrialContext(i + 1, `${testPhase} - interval`);
                 }
                 await wait(interTrialInterval);
             }
 
             if (mounted.current) {
-                // Stop tracking and export data
-                if (irisTracker.current) {
-                    irisTracker.current.stopTracking();
-                    setTimeout(() => {
-                        irisTracker.current.exportCSV();
-                    }, 1000); // slight delay to ensure all data is processed
+                if (testPhase === 'pro') {
+                    // If we just finished Pro-Saccade, trigger break time
+                    setShowBreak(true);
+                } else {
+                    // If we just finished Anti-Saccade, Finish the game
+                    if (irisTracker.current) {
+                        irisTracker.current.stopTracking();
+                        setTimeout(() => {
+                            irisTracker.current.exportCSV();
+                        }, 1000);
+                    }
+                    setIsFinished(true);
+                    if (document.exitFullscreen) document.exitFullscreen();
                 }
-                setIsFinished(true);
             }
-
-            // Optional: Exit full screen when done
-            if (document.exitFullscreen) document.exitFullscreen();
         };
 
         runTest();
-    }, [isStarted]);
+    }, [isStarted, testPhase, showBreak, isFinished]);
 
     return (
         <div className="GameTest">
 
-            {!isStarted && (
+            {!isStarted && !isFinished && (
                     <Modal
                         show={!isStarted}
                         title="Saccade Test"
-                        message="The test will run in full screen."
-                        buttonText="Start Test"
-                        onConfirm={() => {handleStartTest()}}
+                        message={isLoadingCalibration ? "Loading calibration..." : "The test will run in full screen. You will start with the Pro-Saccade test. When the dot appears on the screen, you need to look at the dot."}
+                        buttonText={isLoadingCalibration ? "Please Wait" : "Start Test"}
+                        onConfirm={() => {handleStartProTest()}}
+                        disabled={isLoadingCalibration}
                     />
             )}
 
-            {isStarted && (
+            <Modal
+                show={showBreak}
+                title="Pro-Saccade Test Completed"
+                message={"The first phase is completed. Now you will start the Anti-Saccade test. When the dot appears on the screen, you need to look in the opposite direction of the dot."}
+                buttonText={isLoadingCalibration ? "Please Wait" : "Start Test"}
+                onConfirm={() => {handleStartAntiTest()}}
+                disabled={isLoadingCalibration}
+            />
+
+            {isStarted && !showBreak && !isFinished && (
                 <>
-                    <div className="trial-counter">Trial: {trialCount} / {trialsAmount}</div>
+                    <div className="trial-counter">
+                        Phase: {testPhase === 'pro' ? 'Pro-Saccade' : 'Anti-Saccade'}
+                        Trial: {trialCount} / {trialsAmount}
+                    </div>
 
                     {!isFinished && (
                         <>

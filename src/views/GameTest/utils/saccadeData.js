@@ -2,7 +2,7 @@ import {calculateInstantVelocity} from "./velocity";
 
 // speed threshold to consider a movement to be a saccade
 // deg/s
-const SACCADE_VELOCITY_THRESHOLD = 5;
+const SACCADE_VELOCITY_THRESHOLD = 30;
 
 export const analyzeSaccadeData = (recordingData, dotAppearanceTime) => {
     let peakVelocity = 0;

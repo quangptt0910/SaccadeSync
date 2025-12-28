@@ -9,7 +9,8 @@ class IrisFaceMeshTracker {
         this.videoElement = null;
         this.startTime = null;
         this.animationId = null;
-
+        this.previousFrame = null;
+        this.calibrationModel = null;
         // Iris landmark indices in MediaPipe Face Landmarker
         // Indices 468-477 are iris landmarks (468-472: left, 473-477: right)
         this.LEFT_IRIS_CENTER = 468;
@@ -47,12 +48,35 @@ class IrisFaceMeshTracker {
         console.log('FaceLandmarker initialized');
     }
 
+    setCalibrationModel(model) {
+        this.calibrationModel = model;
+        console.log("Calibration model set in tracker:", model);
+    }
+
+    // Helper to apply quadratic model
+    predictGaze(iris, eye) {
+        if (!this.calibrationModel || !this.calibrationModel[eye]) return null;
+        
+        const { coefX, coefY } = this.calibrationModel[eye];
+        // Check if coefficients exist and are valid arrays
+        if (!coefX || !coefY || coefX.length < 6 || coefY.length < 6) return null;
+
+        const x = iris.x;
+        const y = iris.y;
+
+        // Quadratic polynomial: a0 + a1*x + a2*y + a3*x*x + a4*y*y + a5*x*y
+        const screenX = coefX[0] + coefX[1]*x + coefX[2]*y + coefX[3]*x*x + coefX[4]*y*y + coefX[5]*x*y;
+        const screenY = coefY[0] + coefY[1]*x + coefY[2]*y + coefY[3]*x*x + coefY[4]*y*y + coefY[5]*x*y;
+
+        return { x: screenX, y: screenY };
+    }
+
     async startCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
                     facingMode: 'user'
                 }
             });
@@ -88,29 +112,48 @@ class IrisFaceMeshTracker {
             const leftIris = landmarks[this.LEFT_IRIS_CENTER];
             const rightIris = landmarks[this.RIGHT_IRIS_CENTER];
 
+            // Apply calibration if available
+            let calibratedLeft = null;
+            let calibratedRight = null;
+            let calibratedAvg = null;
+
+            if (this.calibrationModel) {
+                calibratedLeft = this.predictGaze(leftIris, 'left');
+                calibratedRight = this.predictGaze(rightIris, 'right');
+
+                if (calibratedLeft && calibratedRight) {
+                    calibratedAvg = {
+                        x: (calibratedLeft.x + calibratedRight.x) / 2,
+                        y: (calibratedLeft.y + calibratedRight.y) / 2
+                    };
+                } else if (calibratedLeft) {
+                    calibratedAvg = { ...calibratedLeft };
+                } else if (calibratedRight) {
+                    calibratedAvg = { ...calibratedRight };
+                }
+            }
+
             const dataPoint = {
                 timestamp: timestamp,
-                leftIris: {
-                    x: leftIris.x,
-                    y: leftIris.y,
-                    z: leftIris.z
-                },
-                rightIris: {
-                    x: rightIris.x,
-                    y: rightIris.y,
-                    z: rightIris.z
-                },
-                // Calculate average iris position (monocular approximation)
+                // Raw Data
+                leftIris: { x: leftIris.x, y: leftIris.y, z: leftIris.z },
+                rightIris: { x: rightIris.x, y: rightIris.y, z: rightIris.z },
                 avgIris: {
                     x: (leftIris.x + rightIris.x) / 2,
                     y: (leftIris.y + rightIris.y) / 2,
                     z: (leftIris.z + rightIris.z) / 2
+                },
+                // Calibrated Data (Screen Coordinates 0.0-1.0)
+                calibrated: {
+                    left: calibratedLeft,
+                    right: calibratedRight,
+                    avg: calibratedAvg
                 }
             };
 
             this.trackingData.push(dataPoint);
 
-            // Simple saccade detection
+            // Simple saccade detection (optional, can be updated to use calibrated data)
             this.detectSaccade(dataPoint);
         }
 
@@ -128,14 +171,24 @@ class IrisFaceMeshTracker {
 
         if (timeDiff === 0) return;
 
-        // Calculate velocity (approximation using screen dimensions)
-        const dx = (currentPoint.avgIris.x - prevPoint.avgIris.x) * window.screen.width;
-        const dy = (currentPoint.avgIris.y - prevPoint.avgIris.y) * window.screen.height;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const velocity = distance / timeDiff;
+        let velocity = 0;
 
-        // Saccade threshold (pixels per second)
-        const SACCADE_THRESHOLD = 1500;
+        // Use calibrated data if available for better accuracy
+        if (currentPoint.calibrated && currentPoint.calibrated.avg && prevPoint.calibrated && prevPoint.calibrated.avg) {
+             const dx = (currentPoint.calibrated.avg.x - prevPoint.calibrated.avg.x) * window.screen.width;
+             const dy = (currentPoint.calibrated.avg.y - prevPoint.calibrated.avg.y) * window.screen.height;
+             const distance = Math.sqrt(dx * dx + dy * dy);
+             velocity = distance / timeDiff; // pixels per second
+        } else {
+            // Fallback to raw iris movement approximation
+            const dx = (currentPoint.avgIris.x - prevPoint.avgIris.x) * window.screen.width;
+            const dy = (currentPoint.avgIris.y - prevPoint.avgIris.y) * window.screen.height;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            velocity = distance / timeDiff;
+        }
+
+        // Saccade threshold (pixels per second) - adjust as needed
+        const SACCADE_THRESHOLD = 150; 
 
         if (velocity > SACCADE_THRESHOLD) {
             currentPoint.isSaccade = true;
@@ -194,7 +247,7 @@ class IrisFaceMeshTracker {
         }
 
         // CSV header
-        let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,isSaccade,velocity,trial,dotPosition\n';
+        let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,cal_left_x,cal_left_y,cal_right_x,cal_right_y,cal_avg_x,cal_avg_y,isSaccade,trial,dotPosition\n';
 
         // CSV rows
         this.trackingData.forEach(point => {
@@ -202,7 +255,15 @@ class IrisFaceMeshTracker {
             csv += `${point.leftIris.x},${point.leftIris.y},`;
             csv += `${point.rightIris.x},${point.rightIris.y},`;
             csv += `${point.avgIris.x},${point.avgIris.y},`;
-            csv += `${point.isSaccade || false},${point.velocity || 0},`;
+            
+            // Add calibrated data to CSV
+            const c = point.calibrated || {};
+            // Use nullish coalescing operator (??) to allow 0 values but handle null/undefined
+            csv += `${c.left?.x ?? ''},${c.left?.y ?? ''},`;
+            csv += `${c.right?.x ?? ''},${c.right?.y ?? ''},`;
+            csv += `${c.avg?.x ?? ''},${c.avg?.y ?? ''},`;
+
+            csv += `${point.isSaccade || false},`;
             csv += `${point.trial || ''},${point.dotPosition || ''}\n`;
         });
 
