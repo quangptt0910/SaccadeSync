@@ -244,14 +244,19 @@ class IrisFaceMeshTracker {
         let targetX = null;
         let targetY = null;
         
+        // Check for anti-saccade phase
+        const isAnti = typeof dotPosition === 'string' && dotPosition.toLowerCase().includes('anti');
+
         if (dotPosition === 'center' || (typeof dotPosition === 'string' && dotPosition.includes('center'))) {
             targetX = 0.5;
             targetY = 0.5;
         } else if (dotPosition === 'left' || (typeof dotPosition === 'string' && dotPosition.includes('left'))) {
-            targetX = 0.1;
+            // For anti-saccade, target is opposite to the stimulus
+            targetX = isAnti ? 0.9 : 0.1;
             targetY = 0.5;
         } else if (dotPosition === 'right' || (typeof dotPosition === 'string' && dotPosition.includes('right'))) {
-            targetX = 0.9;
+            // For anti-saccade, target is opposite to the stimulus
+            targetX = isAnti ? 0.1 : 0.9;
             targetY = 0.5;
         }
 

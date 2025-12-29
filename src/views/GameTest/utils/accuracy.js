@@ -17,14 +17,9 @@ export const calculateAccuracy = (recordingData, dotAppearanceTime) => {
     let totalError = 0;
     let count = 0;
 
-    // We only care about data AFTER the saccade has likely finished (fixation on target)
-    // A simple heuristic is to look at data e.g. 200ms after dot appearance, 
-    // or just average all data while the dot is visible.
-    // For simplicity, let's consider all frames after dot appearance where target is defined.
-    
     // Ideally, we should filter for the "fixation" period after the saccade.
-    // Let's assume the user fixates within 500ms. 
-    // But to keep it simple and robust, let's average error for all valid frames after appearance.
+    // assume the user fixates within 500ms.
+    // average error for all valid frames after appearance.
 
     for (const frame of recordingData) {
         if (frame.timestamp < dotAppearanceTime) continue;
@@ -49,7 +44,7 @@ export const calculateAccuracy = (recordingData, dotAppearanceTime) => {
     }
 
     if (count === 0) {
-        return { averageError: null, accuracyScore: null };
+        return { averageError: -1, accuracyScore: -1 };
     }
 
     const averageError = totalError / count;
