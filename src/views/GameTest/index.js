@@ -7,8 +7,13 @@ import { db } from '../../firebase';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import Modal from '../../components/Modal';
 import './GameTest.css';
+import {
+    analyzeSaccadeData,
+    aggregateTrialStatistics,
+    compareProVsAnti
+} from './utils/saccadeData';
 import IrisFaceMeshTracker from "./utils/iris-facemesh";
-import {analyzeSaccadeData} from './utils/saccadeData';
+
 
 const GameTest = () => {
 
@@ -30,7 +35,12 @@ const GameTest = () => {
     const [showBreak, setShowBreak] = useState(false);
 
     // calculated results for final report
-    const [testResults, setTestResults] = useState([]);
+    // Structure: { pro: { trials: [], stats: {} }, anti: { trials: [], stats: {} }, comparison: {} }
+    const [testResults, setTestResults] = useState({
+        pro: { trials: [], stats: null },
+        anti: { trials: [], stats: null },
+        comparison: null
+    });
 
     const irisTracker = useRef(null);
 
@@ -178,7 +188,7 @@ const GameTest = () => {
             await wait(1000); // Buffer time
 
             // collect results for the saccade parameters
-            const currentSessionResults = []
+            const currentPhaseTrials = [];
 
             if (irisTracker.current) {
                 // Useful marker in your CSV to know where phase 2 starts
@@ -226,12 +236,18 @@ const GameTest = () => {
                     const allData = irisTracker.current.getTrackingData();
 
                     // Analyze from the moment the dot appeared until now
-                    const analysis = analyzeSaccadeData(allData, dotAppearanceTime);
+                    // Using new analyzeSaccadeData from saccadeData.js
+                    const analysis = analyzeSaccadeData(allData, dotAppearanceTime, {
+                        requireValidData: true,
+                        minLatency: 50,
+                        maxLatency: 600
+                    });
 
                     // This should now print a real number (e.g., 200-500 deg/s)
                     console.log(`Phase: ${testPhase}, Trial ${i+1}, Peak Velocity: ${analysis.peakVelocity}, isSaccade: ${analysis.isSaccade}`);
-                    // Store result if needed
-                    // currentSessionResults.push(analysis);
+
+                    // Store result
+                    currentPhaseTrials.push(analysis);
                 }
 
                 // 4. Interval
@@ -244,11 +260,50 @@ const GameTest = () => {
             }
 
             if (mounted.current) {
+                // Calculate statistics for this phase
+                const phaseStats = aggregateTrialStatistics(currentPhaseTrials, testPhase);
+                console.log(`${testPhase} Phase Stats:`, phaseStats);
+
+                // Update results state
+                setTestResults(prev => ({
+                    ...prev,
+                    [testPhase]: {
+                        trials: currentPhaseTrials,
+                        stats: phaseStats
+                    }
+                }));
+
                 if (testPhase === 'pro') {
                     // If we just finished Pro-Saccade, trigger break time
                     setShowBreak(true);
                 } else {
                     // If we just finished Anti-Saccade, Finish the game
+                    
+                    // Perform final comparison
+                    // Note: We need to use the functional update of setTestResults or a ref to access the 'pro' stats we just saved
+                    // But since setTestResults is async, we can't rely on 'testResults.pro' being updated yet in this closure.
+                    // However, we have 'currentPhaseTrials' (which is anti) and we can assume 'testResults.pro' was set in the previous run.
+                    // Actually, 'testResults' in this closure is stale (from render start).
+                    // Better to use a ref for immediate access or just calculate comparison later/in a separate effect.
+                    // For simplicity, let's just finish here and let the Results page handle display, 
+                    // or calculate comparison using the functional update pattern if we want to save it now.
+                    
+                    setTestResults(prev => {
+                        const proStats = prev.pro.stats;
+                        const antiStats = phaseStats; // current phase is anti
+                        const comparison = compareProVsAnti(proStats, antiStats);
+                        console.log("Final Comparison:", comparison);
+                        
+                        return {
+                            ...prev,
+                            [testPhase]: {
+                                trials: currentPhaseTrials,
+                                stats: phaseStats
+                            },
+                            comparison: comparison
+                        };
+                    });
+
                     if (irisTracker.current) {
                         irisTracker.current.stopTracking();
                         setTimeout(() => {
@@ -309,7 +364,7 @@ const GameTest = () => {
                 title="Test Complete!"
                 message="You have successfully completed the Saccade test. Click below to view your analysis."
                 buttonText="View Results"
-                onConfirm={() => navigate('/results')}
+                onConfirm={() => navigate('/results', { state: { results: testResults } })}
             />
 
         </div>

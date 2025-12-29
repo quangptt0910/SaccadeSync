@@ -1,5 +1,6 @@
 // iris-facemesh.js
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+import { detectSaccade } from './detectSaccade';
 
 class IrisFaceMeshTracker {
     constructor() {
@@ -15,6 +16,14 @@ class IrisFaceMeshTracker {
         // Indices 468-477 are iris landmarks (468-472: left, 473-477: right)
         this.LEFT_IRIS_CENTER = 468;
         this.RIGHT_IRIS_CENTER = 473;
+
+        // Store current trial context to apply to every new frame
+        this.currentContext = {
+            trial: null,
+            dotPosition: null,
+            targetX: null,
+            targetY: null
+        };
     }
 
     async initialize() {
@@ -148,13 +157,18 @@ class IrisFaceMeshTracker {
                     left: calibratedLeft,
                     right: calibratedRight,
                     avg: calibratedAvg
-                }
+                },
+                // Context Data (applied from current state)
+                trial: this.currentContext.trial,
+                dotPosition: this.currentContext.dotPosition,
+                targetX: this.currentContext.targetX,
+                targetY: this.currentContext.targetY
             };
 
             this.trackingData.push(dataPoint);
 
-            // Simple saccade detection (optional, can be updated to use calibrated data)
-            this.detectSaccade(dataPoint);
+            // Real-time saccade detection
+            this.performSaccadeDetection(dataPoint);
         }
 
         // Continue tracking loop
@@ -163,36 +177,16 @@ class IrisFaceMeshTracker {
         }
     }
 
-    detectSaccade(currentPoint) {
+    performSaccadeDetection(currentPoint) {
         if (this.trackingData.length < 2) return;
 
         const prevPoint = this.trackingData[this.trackingData.length - 2];
-        const timeDiff = (currentPoint.timestamp - prevPoint.timestamp) / 1000; // seconds
+        
+        const result = detectSaccade(currentPoint, prevPoint);
 
-        if (timeDiff === 0) return;
-
-        let velocity = 0;
-
-        // Use calibrated data if available for better accuracy
-        if (currentPoint.calibrated && currentPoint.calibrated.avg && prevPoint.calibrated && prevPoint.calibrated.avg) {
-             const dx = (currentPoint.calibrated.avg.x - prevPoint.calibrated.avg.x) * window.screen.width;
-             const dy = (currentPoint.calibrated.avg.y - prevPoint.calibrated.avg.y) * window.screen.height;
-             const distance = Math.sqrt(dx * dx + dy * dy);
-             velocity = distance / timeDiff; // pixels per second
-        } else {
-            // Fallback to raw iris movement approximation
-            const dx = (currentPoint.avgIris.x - prevPoint.avgIris.x) * window.screen.width;
-            const dy = (currentPoint.avgIris.y - prevPoint.avgIris.y) * window.screen.height;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            velocity = distance / timeDiff;
-        }
-
-        // Saccade threshold (pixels per second) - adjust as needed
-        const SACCADE_THRESHOLD = 150; 
-
-        if (velocity > SACCADE_THRESHOLD) {
+        if (result.isSaccade) {
             currentPoint.isSaccade = true;
-            currentPoint.velocity = velocity;
+            currentPoint.velocity = result.velocity;
         }
     }
 
@@ -232,26 +226,34 @@ class IrisFaceMeshTracker {
 
     // Add trial context to current tracking data
     addTrialContext(trialNumber, dotPosition) {
+        // Calculate target coordinates based on dotPosition
+        let targetX = null;
+        let targetY = null;
+        
+        if (dotPosition === 'center' || (typeof dotPosition === 'string' && dotPosition.includes('center'))) {
+            targetX = 0.5;
+            targetY = 0.5;
+        } else if (dotPosition === 'left' || (typeof dotPosition === 'string' && dotPosition.includes('left'))) {
+            targetX = 0.1;
+            targetY = 0.5;
+        } else if (dotPosition === 'right' || (typeof dotPosition === 'string' && dotPosition.includes('right'))) {
+            targetX = 0.9;
+            targetY = 0.5;
+        }
+
+        // Update current context state so future frames get this info
+        this.currentContext = {
+            trial: trialNumber,
+            dotPosition: dotPosition,
+            targetX: targetX,
+            targetY: targetY
+        };
+
+        // Also update the last point if exists (for immediate effect on the current frame if timing is tight)
         if (this.trackingData.length > 0) {
             const lastPoint = this.trackingData[this.trackingData.length - 1];
             lastPoint.trial = trialNumber;
             lastPoint.dotPosition = dotPosition;
-            
-            // Add target coordinates based on dotPosition
-            let targetX = null;
-            let targetY = null;
-            
-            if (dotPosition === 'center' || dotPosition.includes('center')) {
-                targetX = 0.5;
-                targetY = 0.5;
-            } else if (dotPosition === 'left' || dotPosition.includes('left')) {
-                targetX = 0.1;
-                targetY = 0.5;
-            } else if (dotPosition === 'right' || dotPosition.includes('right')) {
-                targetX = 0.9;
-                targetY = 0.5;
-            }
-            
             lastPoint.targetX = targetX;
             lastPoint.targetY = targetY;
         }
@@ -265,7 +267,7 @@ class IrisFaceMeshTracker {
         }
 
         // CSV header
-        let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,cal_left_x,cal_left_y,cal_right_x,cal_right_y,cal_avg_x,cal_avg_y,isSaccade,trial,dotPosition,targetX,targetY\n';
+        let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,cal_left_x,cal_left_y,cal_right_x,cal_right_y,cal_avg_x,cal_avg_y,isSaccade,velocity,trial,dotPosition,targetX,targetY\n';
 
         // CSV rows
         this.trackingData.forEach(point => {
@@ -282,6 +284,7 @@ class IrisFaceMeshTracker {
             csv += `${c.avg?.x ?? ''},${c.avg?.y ?? ''},`;
 
             csv += `${point.isSaccade || false},`;
+            csv += `${point.velocity || 0},`; // Added velocity column
             csv += `${point.trial || ''},${point.dotPosition || ''},`;
             csv += `${point.targetX ?? ''},${point.targetY ?? ''}\n`;
         });
