@@ -130,6 +130,21 @@ class IrisFaceMeshTracker {
                 calibratedLeft = this.predictGaze(leftIris, 'left');
                 calibratedRight = this.predictGaze(rightIris, 'right');
 
+                // Heuristic: If coordinates are large (> 2.0), assume they are in pixels and normalize
+                // This handles legacy calibrations that might have been trained on pixel coordinates
+                if (calibratedLeft) {
+                    if (Math.abs(calibratedLeft.x) > 2.0 || Math.abs(calibratedLeft.y) > 2.0) {
+                        calibratedLeft.x /= window.innerWidth;
+                        calibratedLeft.y /= window.innerHeight;
+                    }
+                }
+                if (calibratedRight) {
+                    if (Math.abs(calibratedRight.x) > 2.0 || Math.abs(calibratedRight.y) > 2.0) {
+                        calibratedRight.x /= window.innerWidth;
+                        calibratedRight.y /= window.innerHeight;
+                    }
+                }
+
                 if (calibratedLeft && calibratedRight) {
                     calibratedAvg = {
                         x: (calibratedLeft.x + calibratedRight.x) / 2,
@@ -145,12 +160,11 @@ class IrisFaceMeshTracker {
             const dataPoint = {
                 timestamp: timestamp,
                 // Raw Data
-                leftIris: { x: leftIris.x, y: leftIris.y, z: leftIris.z },
-                rightIris: { x: rightIris.x, y: rightIris.y, z: rightIris.z },
+                leftIris: { x: leftIris.x, y: leftIris.y },
+                rightIris: { x: rightIris.x, y: rightIris.y},
                 avgIris: {
                     x: (leftIris.x + rightIris.x) / 2,
                     y: (leftIris.y + rightIris.y) / 2,
-                    z: (leftIris.z + rightIris.z) / 2
                 },
                 // Calibrated Data (Screen Coordinates 0.0-1.0)
                 calibrated: {
