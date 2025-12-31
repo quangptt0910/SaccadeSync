@@ -1,129 +1,103 @@
-#calibration-root {
+.calibration-page {
+    min-height: 100vh;
     background-color: #e8f4f8;
-    min-height: calc(100vh - 60px);
-    padding: 3rem 2rem;
     display: flex;
     justify-content: center;
+    padding: 40px 20px;
+    font-family: 'Inter', sans-serif;
 }
 
-.calibration-card {
+.calibration-container {
     width: 100%;
-    max-width: 1200px;
-    display: grid;
-    grid-template-columns: 1fr 1.4fr;
-    gap: 3rem;
-    align-items: center;
+    max-width: 900px;
+    background-color: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
 }
 
-.calibration-card > h2,
-.calibration-card > .calibration-title,
-.calibration-card > .calibration-intro,
-.calibration-card > .calibration-section,
-.calibration-card > .calibration-note,
-.calibration-card > .calibration-divider,
-.calibration-card > .instruction-text,
-#distance-status,
-#stop-calibration-btn,
-#calibration-parameters {
-    grid-column: 1 / 2;
-}
-
-.calibration-title {
-    font-size: 2.5rem;
+.cal-section-title {
+    font-size: 1.75rem;
     font-weight: 700;
-    color: #1a1a1a;
-    margin-bottom: 0.75rem;
+    color: #111827;
+    margin-bottom: 20px;
 }
 
-.calibration-intro {
-    font-size: 1rem;
+.cal-intro-text {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #374151;
+    text-align: left;
+}
+
+.cal-instruction-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #374151;
+}
+
+.cal-highlight {
+    font-weight: 500;
+    color: #4b5563;
+}
+
+.cal-steps-list {
+    padding-left: 20px;
+    margin-top: 10px;
+}
+
+.cal-steps-list li {
+    margin-bottom: 15px;
+    font-size: 1.05rem;
     line-height: 1.6;
-    color: #555;
-    max-width: 420px;
-    margin-bottom: 1.75rem;
+    color: #374151;
 }
 
-.calibration-section {
-    margin-bottom: 1.5rem;
-}
-
-.calibration-section h3 {
-    font-size: 1.1rem;
+.cal-steps-list strong {
+    color: #111827;
     font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 0.4rem;
 }
 
-.calibration-section p {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    color: #555;
-    max-width: 420px;
+.cal-video-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
 }
 
-.calibration-steps {
-    padding-left: 1.2rem;
-    max-width: 420px;
-}
-
-.calibration-steps li {
-    margin-bottom: 1rem;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: #555;
-}
-
-.calibration-steps li strong {
-    display: block;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 0.25rem;
-}
-
-.calibration-steps li span {
-    display: block;
-}
-
-.calibration-note {
-    background: #f4fbfd;
-    border-left: 4px solid #1a1a1a;
-    padding: 0.9rem 1.1rem;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    color: #333;
-    max-width: 420px;
-    margin-bottom: 1.75rem;
-    border-radius: 4px;
-}
-
-.calibration-divider {
-    height: 1px;
-    background: rgba(0, 0, 0, 0.15);
-    margin: 2rem 0 1.5rem 0;
-    max-width: 420px;
-}
-
-.instruction-text {
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #444;
-    margin-bottom: 0.75rem;
-}
-
-.video-container {
-    grid-column: 2 / 3;
+.video-box {
     position: relative;
     width: 100%;
+    max-width: 640px;
     aspect-ratio: 16 / 9;
     background: #b8d4dc;
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.cal-divider {
+    border: 0;
+    height: 1px;
+    background-color: #e5e7eb;
+    width: 100%;
+}
+
+.cal-action-area {
     display: flex;
     justify-content: center;
-    align-items: center;
+    margin-top: 10px;
+    gap: 15px;
 }
 
 #calibration-video,
@@ -154,58 +128,16 @@
     align-items: center;
     text-align: center;
     padding: 2rem;
+    z-index: 10;
 }
 
 #static-preview {
     background: #f4fbfd;
 }
 
-#static-preview h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 0.75rem;
-}
-
-#static-preview p {
-    color: #555;
-    margin-bottom: 1.5rem;
-    max-width: 300px;
-}
-
 #distance-overlay {
-    background: rgba(26, 26, 26, 0.85);
+    background: rgba(17, 24, 39, 0.9);
     color: #fff;
-}
-
-.btn {
-    padding: 0.75rem 1.75rem;
-    border-radius: 8px;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.btn-primary {
-    background-color: #1a1a1a;
-    color: #fff;
-}
-
-.btn-primary:hover {
-    opacity: 0.9;
-}
-
-.btn-danger {
-    background-color: #c0392b;
-    color: #fff;
-}
-
-#distance-status {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #555;
 }
 
 #dot-stage {
@@ -222,7 +154,7 @@
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: red;
+    background: #ef4444;
     position: absolute;
     transform: translate(-50%, -50%);
 }
@@ -237,40 +169,37 @@
 }
 
 #fs-warning .panel {
-    background: #1a1a1a;
+    background: #1f2937;
     color: white;
     padding: 2rem;
     border-radius: 12px;
     text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
-@media (max-width: 968px) {
-    .calibration-card {
-        grid-template-columns: 1fr;
-        text-align: center;
-    }
+.calibration-feedback {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    padding: 25px;
+    border-radius: 8px;
+    text-align: center;
+    margin-top: 20px;
+}
 
-    .video-container {
-        grid-column: 1 / -1;
-    }
+.feedback-success {
+    border-left: 4px solid #10b981;
+}
 
-    .calibration-intro,
-    .calibration-section p,
-    .calibration-note,
-    .calibration-divider {
-        margin-left: auto;
-        margin-right: auto;
-        max-width: 100%;
-    }
-
-    .calibration-steps {
-        padding-left: 0;
-        list-style-position: inside;
-    }
+.feedback-failed {
+    border-left: 4px solid #ef4444;
 }
 
 @media (max-width: 640px) {
-    .calibration-title {
-        font-size: 2rem;
+    .calibration-container {
+        padding: 20px;
+        gap: 30px;
+    }
+    .cal-section-title {
+        font-size: 1.5rem;
     }
 }

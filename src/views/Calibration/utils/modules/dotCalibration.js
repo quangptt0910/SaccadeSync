@@ -2,6 +2,7 @@ import { refs } from "./domRefs.js";
 import { faceLandmarker } from "./faceModel.js";
 import { distanceOK } from "./distance.js";
 import { displayCalibrationParameters, displayPredictionModel } from "./display.js";
+import { stopDistanceCheck } from "./video.js";
 
 export let gazeData = [];
 export let calibrationModel = {
@@ -201,10 +202,11 @@ export async function runDotCalibration(onComplete) {
         refs.dotStage.style.display = "none";
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 
+        stopDistanceCheck();
+
         displayCalibrationParameters();
-        //displayPredictionModel();
         const metrics = displayPredictionModel();
-        //return;
+
         if (onComplete && typeof onComplete === "function") {
             onComplete({
                 gazeData,
@@ -213,19 +215,4 @@ export async function runDotCalibration(onComplete) {
             });
         }
     }
-
-    // runningDot = false;
-    // refs.calDot.style.opacity = "0";
-    // refs.dotStage.style.display = "none";
-    // if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    // displayCalibrationParameters();
-    // const metrics = displayPredictionModel();
-    //
-    // if (onComplete && typeof onComplete === "function") {
-    //     onComplete({
-    //         gazeData,
-    //         calibrationModel,
-    //         metrics
-    //     });
-    // }
 }

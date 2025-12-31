@@ -77,129 +77,125 @@ export default function Calibration() {
     }, [dispatch, user]);
 
     return (
-        <div id="calibration-root">
-            <div className="calibration-card">
+        <div className="calibration-page">
+            <div className="calibration-container">
 
-                <h2 className="calibration-title">Gaze Calibration</h2>
-
-                <p className="calibration-intro">
-                    Before starting the test, we need to calibrate the system to
-                    your gaze. This short process ensures accurate and
-                    personalized measurements.
-                </p>
-
-                <div className="calibration-section">
-                    <h3>Why this is needed</h3>
-                    <p>
-                        Everyone looks at the screen differently. Calibration
-                        allows the system to learn how your eyes move and map
-                        your gaze precisely during the experiment.
+                <section>
+                    <h1 className="cal-section-title">Gaze Calibration</h1>
+                    <p className="cal-intro-text">
+                        Before starting the test, we need to calibrate the system to your gaze.
+                        This short process ensures accurate and personalized measurements for the experiments.
                     </p>
-                </div>
+                </section>
 
-                <div className="calibration-section">
-                    <h3>How calibration works</h3>
-                    <ol className="calibration-steps">
-                        <li>
-                            <strong>Distance check</strong>
-                            <span>
-                                We verify that you are seated at the optimal
-                                distance. For best results, keep your face about
-                                <strong> 0.5 meters </strong> from the camera.
-                            </span>
-                        </li>
-                        <li>
-                            <strong>Dot familiarization</strong>
-                            <span>
-                                You will follow a dot on the screen while the
-                                system collects calibration data.
-                            </span>
-                        </li>
-                        <li>
-                            <strong>Personalized model</strong>
-                            <span>
-                                The collected data is used to personalize gaze
-                                tracking for all subsequent tests.
-                            </span>
-                        </li>
-                    </ol>
-                </div>
+                <hr className="cal-divider" />
 
-                <div className="calibration-note">
-                    Sit still, face the screen directly, and avoid sudden
-                    movements during calibration.
-                </div>
-
-                <div className="calibration-divider" />
-
-                <p className="instruction-text">Step 1 — Distance Check</p>
-
-                <div className="video-container">
-                    <video
-                        id="calibration-video"
-                        playsInline
-                        muted
-                    />
-                    <canvas id="calibration-canvas" />
-
-                    <div id="static-preview" className="show-flex">
-                        <h3>Distance check</h3>
-                        <p>
-                            Click <strong>Start Check</strong> to begin
-                        </p>
-                        <button
-                            id="start-calibration-btn"
-                            className="btn btn-primary"
-                        >
-                            Start Check
-                        </button>
+                <section>
+                    <h2 className="cal-section-title">How it works</h2>
+                    <div className="cal-instruction-text">
+                        <ul className="cal-steps-list">
+                            <li>
+                                <strong>1. Distance Check:</strong> We verify you are seated at the optimal distance (approx. 0.5 meters).
+                            </li>
+                            <li>
+                                <strong>2. Follow the Dot:</strong> You will follow a red dot on the screen while keeping your head still.
+                            </li>
+                            <li>
+                                <strong>3. Personalization:</strong> The system builds a custom model for your eyes.
+                            </li>
+                        </ul>
                     </div>
+                </section>
 
-                    <div id="distance-overlay">
-                        <p id="overlay-status-text">SYSTEM INACTIVE</p>
-                        <p id="overlay-instructions">Loading a camera...</p>
-                        <button
-                            id="run-calibration-btn-overlay"
-                            className="btn btn-primary"
-                        >
-                            Run Calibration
-                        </button>
+                <hr className="cal-divider" />
+
+                <section>
+                    <h2 className="cal-section-title">Step 1: Distance Check</h2>
+                    <p className="cal-instruction-text" style={{marginBottom: '20px'}}>
+                        Please center your face in the camera view below.
+                    </p>
+
+                    <div className="cal-video-wrapper">
+                        <div className="video-box">
+                            <div className="video-container">
+                                <video id="calibration-video" playsInline muted />
+                                <canvas id="calibration-canvas" />
+
+                                <div id="static-preview" className="show-flex">
+                                    <h3>Camera Access</h3>
+                                    <p style={{marginBottom:'1rem', color:'#666'}}>
+                                        Click Start to activate your camera for the distance check.
+                                    </p>
+
+                                    <button
+                                        id="start-calibration-btn"
+                                        className="btn btn-primary"
+                                    >
+                                        Start Check
+                                    </button>
+                                </div>
+
+                                <div id="distance-overlay">
+                                    <p id="overlay-status-text" style={{fontSize: '1.2rem', fontWeight:'bold', marginBottom:'0.5rem'}}>SYSTEM INACTIVE</p>
+                                    <p id="overlay-instructions" style={{marginBottom:'1.5rem'}}>Loading camera...</p>
+
+                                    <button
+                                        id="run-calibration-btn-overlay"
+                                        className="btn btn-primary"
+                                    >
+                                        Run Calibration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="cal-action-area">
+                            <button
+                                id="stop-calibration-btn"
+                                className="btn btn-danger"
+                                style={{
+                                    display: "none",
+                                    marginTop: '15px'
+                                }}
+                            >
+                                Stop Check
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                <button
-                    id="stop-calibration-btn"
-                    className="btn btn-danger"
-                    style={{ display: "none" }}
-                >
-                    Stop Check
-                </button>
-
-                <div id="calibration-parameters" />
-
-                {/* Post-Calibration Actions */}
                 {calibrationStatus === "success" && (
-                    <div className="calibration-actions" style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '2rem' }}>
-                        <p style={{ color: '#27ae60', fontWeight: 'bold', marginBottom: '1rem' }}>
-                            Calibration Successful! You may proceed.
+                    <div className="calibration-feedback feedback-success">
+                        <h3 style={{color: '#065f46', marginBottom: '10px', fontSize: '1.5rem'}}>Calibration Successful</h3>
+                        <p style={{marginBottom: '20px', color: '#374151'}}>
+                            Your gaze data has been recorded accurately. You are ready to proceed.
                         </p>
-                        <Button 
-                            className="btn--primary" 
+                        <Button
+                            variant="primary"
                             onClick={() => navigate("/instructions")}
                         >
-                            Proceed to Instructions before the test
+                            Proceed to Instructions
                         </Button>
                     </div>
                 )}
 
                 {calibrationStatus === "failed" && (
-                    <div className="calibration-actions" style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '2rem' }}>
-                        <p style={{ color: '#c0392b', fontWeight: 'bold', marginBottom: '1rem' }}>
-                            Accuracy too low. Please try again.
+                    <div className="calibration-feedback feedback-failed">
+                        <h3 style={{color: '#991b1b', marginBottom: '10px', fontSize: '1.5rem'}}>Calibration Inaccurate</h3>
+                        <p style={{marginBottom: '20px', color: '#374151'}}>
+                            We couldn't get a clear reading. Please ensure you are well lit and sitting still.
                         </p>
-                        <Button className="btn--secondary" onClick={() => window.location.reload()}>Retry Calibration</Button>
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => window.location.reload()}
+                            style={{backgroundColor: '#f3f4f6', color: '#1f2937', border: '1px solid #d1d5db'}}
+                        >
+                            Retry Calibration
+                        </button>
                     </div>
                 )}
+
+                <div id="calibration-parameters" style={{ display: 'none'}} />
             </div>
 
             <div id="dot-stage">
