@@ -175,16 +175,16 @@ export default function Calibration() {
                     Stop Check
                 </button>
 
-                <div id="calibration-parameters" />
+                <div id="calibration-parameters" style={{ display: 'none'}} />
 
                 {/* Post-Calibration Actions */}
                 {calibrationStatus === "success" && (
-                    <div className="calibration-actions" style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '2rem' }}>
-                        <p style={{ color: '#27ae60', fontWeight: 'bold', marginBottom: '1rem' }}>
-                            Calibration Successful! You may proceed.
-                        </p>
-                        <Button 
-                            className="btn--primary" 
+                    <div className="calibration-feedback feedback-success">
+                        <div className="icon-badge">✓</div>
+                        <h3>Calibration Successful</h3>
+                        <p>Your gaze data has been recorded accurately.</p>
+                        <Button
+                            className="btn--primary"
                             onClick={() => navigate("/instructions")}
                         >
                             Proceed to Instructions before the test
@@ -193,10 +193,10 @@ export default function Calibration() {
                 )}
 
                 {calibrationStatus === "failed" && (
-                    <div className="calibration-actions" style={{ gridColumn: '1 / -1', textAlign: 'center', marginTop: '2rem' }}>
-                        <p style={{ color: '#c0392b', fontWeight: 'bold', marginBottom: '1rem' }}>
-                            Accuracy too low. Please try again.
-                        </p>
+                    <div className="calibration-feedback feedback-failed">
+                        <div className="icon-badge">!</div>
+                        <h3>Calibration Inaccurate</h3>
+                        <p>We couldn't get a clear reading. Please ensure you are well lit and sitting still.</p>
                         <Button className="btn--secondary" onClick={() => window.location.reload()}>Retry Calibration</Button>
                     </div>
                 )}

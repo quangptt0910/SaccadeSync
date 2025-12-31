@@ -23,7 +23,6 @@
 .calibration-card > .calibration-divider,
 .calibration-card > .instruction-text,
 #distance-status,
-#stop-calibration-btn,
 #calibration-parameters {
     grid-column: 1 / 2;
 }
@@ -124,6 +123,58 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+#stop-calibration-btn {
+    grid-column: 2 / 3;
+    justify-self: center;
+    margin-top: 1rem;
+}
+
+.calibration-feedback {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.calibration-feedback h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #1a1a1a;
+}
+
+.calibration-feedback p {
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.icon-badge {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 1rem;
+    font-weight: bold;
+}
+
+.feedback-success .icon-badge {
+    background-color: #27ae60;
+}
+
+.feedback-failed .icon-badge {
+    background-color: #c0392b;
 }
 
 #calibration-video,
@@ -251,6 +302,10 @@
     }
 
     .video-container {
+        grid-column: 1 / -1;
+    }
+
+    #stop-calibration-btn {
         grid-column: 1 / -1;
     }
 
