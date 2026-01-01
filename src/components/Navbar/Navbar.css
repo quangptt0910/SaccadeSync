@@ -3,17 +3,17 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 3rem;
-  background-color: #e5e7eb;
+  background-color: #9ABBC8;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .navbar--login {
-  background-color: #e5e7eb;
+  background-color: #9ABBC8;
 }
 
 .navbar__logo {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 2rem;
+  font-weight: 800;
   color: #1a1a1a;
 }
 
@@ -24,7 +24,7 @@
 }
 
 .navbar__link {
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: #333;
   padding: 0.5rem 1rem;
   border-radius: 4px;

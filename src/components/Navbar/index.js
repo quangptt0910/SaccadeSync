@@ -28,11 +28,11 @@ const Navbar = () => {
 
   return (
     <nav className={`navbar ${isLoginPage ? 'navbar--login' : ''}`}>
-      <Link to="/" className="navbar__logo">
+      <Link to="/" className="navbar__logo" style={{ textDecoration: 'none' }}>
         Saccade Sync
       </Link>
       <div className="navbar__links">
-        <Link to="/results" className="navbar__link">
+        <Link to="/results" className="navbar__link" style={{ textDecoration: 'none' }}>
           {isAuthenticated ? 'My Results' : 'Results'}
         </Link>
         {isAuthenticated ? (
@@ -44,7 +44,7 @@ const Navbar = () => {
           </>
         ) : (
           <Link 
-            to="/login" 
+            to="/login " style={{ textDecoration: 'none' }}
             className={`navbar__link ${isLoginPage ? 'navbar__link--active' : ''}`}
           >
             Login

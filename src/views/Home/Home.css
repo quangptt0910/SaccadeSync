@@ -1,5 +1,5 @@
 .home {
-  background-color: #e8f4f8;
+  background-color: #fdf2f2;
   min-height: calc(100vh - 60px);
 }
 
@@ -7,7 +7,7 @@
 .hero {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3rem;
+  gap: 8rem;
   padding: 3rem 2rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -30,12 +30,13 @@
 
 .hero__image {
   display: flex;
-  justify-content: center;
+  justify-content: left;
 }
 
 .hero__image img {
   width: 100%;
-  max-width: 350px;
+  max-width: 400px;
+  max-height: 400px;
   border-radius: 12px;
   object-fit: cover;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -45,7 +46,7 @@
 .cta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3rem;
+  gap: 8rem;
   padding: 3rem 2rem;
   max-width: 1200px;
   margin: 0 auto;
@@ -53,19 +54,17 @@
 }
 
 .cta__image {
-  background-color: #b8d4dc;
-  padding: 2rem;
-  border-radius: 12px;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: left;
 }
 
 .cta__image img {
   width: 100%;
-  max-width: 280px;
-  border-radius: 8px;
+  max-width: 450px;
+  max-height: 462px;
+  border-radius: 12px;
   object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .cta__title {
