@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { selectCalibrationModel, selectIsCalibrated, setCalibrationResult } from '../../store/calibrationSlice';
 import { selectUser } from '../../store/authSlice';
 import { db } from '../../firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import {collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp} from 'firebase/firestore';
 import Modal from '../../components/Modal';
 import './GameTest.css';
 import {
@@ -112,6 +112,26 @@ const GameTest = () => {
         fetchCalibration();
     }, [isCalibrated, user, dispatch]); // Removed calibrationModel from deps to avoid loops, relying on isCalibrated
 
+
+    // save metric data to firebase
+    const saveMetricsToFirebase = async (uid, data) => {
+        try {
+            const metricsRef = collection(db, "users", uid, "saccadeMetrics");
+            await addDoc(metricsRef, {
+                timestamp: serverTimestamp(),
+                comparison: data.comparison,
+                pro: data.pro,
+                anti: data.anti,
+                totalTrials: trialsAmount * 2
+            });
+
+            console.log("Saccade metrics successfully saved to Firebase");
+        } catch (error) {
+            console.error("Error saving saccade metric data", error);
+        }
+    }
+
+
     // full screen logic
     const enterFullScreen = () => {
         const elem = document.documentElement; // The whole page
@@ -180,6 +200,12 @@ const GameTest = () => {
     // the wait function
     const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+    // use a ref to store data
+    const resultsRef = useRef({
+        pro: {state: null },
+        anti: {state: null },
+        comparison: null
+    })
 
     useEffect(() => {
         if (!isStarted || isFinished || showBreak) return; // Don't run logic yet
@@ -243,6 +269,9 @@ const GameTest = () => {
                         maxLatency: 600
                     });
 
+                    analysis.trailId = i + 1;
+                    analysis.targetSide = side;
+
                     // This should now print a real number (e.g., 200-500 deg/s)
                     console.log(`Phase: ${testPhase}, Trial ${i+1}, Peak Velocity: ${analysis.peakVelocity}, isSaccade: ${analysis.isSaccade}`);
 
@@ -264,7 +293,6 @@ const GameTest = () => {
                 const phaseStats = aggregateTrialStatistics(currentPhaseTrials, testPhase);
                 console.log(`${testPhase} Phase Stats:`, phaseStats);
 
-                // Update results state
                 setTestResults(prev => ({
                     ...prev,
                     [testPhase]: {
@@ -272,6 +300,14 @@ const GameTest = () => {
                         stats: phaseStats
                     }
                 }));
+
+                // Update results state
+                resultsRef.current = {
+                    ...resultsRef.current,
+                    [testPhase]: {
+                        stats: phaseStats
+                    }
+                };
 
                 if (testPhase === 'pro') {
                     // If we just finished Pro-Saccade, trigger break time
@@ -287,22 +323,16 @@ const GameTest = () => {
                     // Better to use a ref for immediate access or just calculate comparison later/in a separate effect.
                     // For simplicity, let's just finish here and let the Results page handle display, 
                     // or calculate comparison using the functional update pattern if we want to save it now.
-                    
-                    setTestResults(prev => {
-                        const proStats = prev.pro.stats;
-                        const antiStats = phaseStats; // current phase is anti
-                        const comparison = compareProVsAnti(proStats, antiStats);
-                        console.log("Final Comparison:", comparison);
-                        
-                        return {
-                            ...prev,
-                            [testPhase]: {
-                                trials: currentPhaseTrials,
-                                stats: phaseStats
-                            },
-                            comparison: comparison
-                        };
-                    });
+
+                    const proStats = resultsRef.current.pro.stats;
+                    const antiStats = phaseStats;
+                    const comparison = compareProVsAnti(proStats, antiStats);
+
+                    resultsRef.current.comparison = comparison;
+
+                    setTestResults(prev => ({ ...prev, comparison }));
+
+                    await saveMetricsToFirebase(user.uid, resultsRef.current);
 
                     if (irisTracker.current) {
                         irisTracker.current.stopTracking();
