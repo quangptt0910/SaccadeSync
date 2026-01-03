@@ -39,3 +39,215 @@
 .results-placeholder p {
   margin-bottom: 1rem;
 }
+
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.header-left h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.subtitle {
+  margin: 5px 0 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.header-right {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* Modern Select Styling */
+.session-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selector-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.modern-select {
+  appearance: none;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 40px 10px 15px;
+  font-size: 0.95rem;
+  color: #333;
+  cursor: pointer;
+  min-width: 220px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.modern-select:hover {
+  border-color: #bbb;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto; /* Top row auto height, bottom row auto */
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.card h3 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: #444;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+/* Top Row: Spans all 3 columns */
+.full-width {
+  grid-column: 1 / -1;
+  min-height: 350px;
+}
+
+/* Chart Containers */
+.chart-container {
+  position: relative;
+  width: 100%;
+  flex-grow: 1;
+}
+
+.timeline-chart {
+  height: 300px;
+}
+
+.small-chart {
+  height: 180px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Donut Chart Specifics */
+.donut-container {
+  position: relative;
+}
+
+.donut-center-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  color: #333;
+}
+
+/* Stats Text Card */
+.stats-text-card .stat-row-large {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px 0;
+}
+
+.stat-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.helper-text {
+  font-size: 0.85rem;
+  color: #666;
+  margin: -10px 0 15px;
+}
+
+.stat-footer {
+  text-align: center;
+  margin-top: auto;
+  color: #888;
+}
+
+/* Quality Bar */
+.quality-indicator {
+  margin-top: auto;
+}
+.progress-bar {
+  height: 6px;
+  background: #eee;
+  border-radius: 3px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: #4ade80;
+}
+
+/* Utilities */
+.center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 400px;
+}
