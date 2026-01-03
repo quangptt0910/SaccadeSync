@@ -96,11 +96,7 @@ const Results = () => {
     setSelectedSession(session);
   };
 
-  // --- CHART CONFIGURATIONS ---
-
-  // 1. Timeline Chart Data (Memoized for performance)
   const timelineChartData = useMemo(() => {
-    // Reverse array so graph goes Left (Old) -> Right (New)
     const sortedHistory = [...historyData].reverse();
 
     return {
@@ -124,7 +120,6 @@ const Results = () => {
     };
   }, [historyData]);
 
-  // 2. Bar Chart Data (Specific Session)
   const barChartData = useMemo(() => {
     if (!selectedSession) return null;
     return {
@@ -142,7 +137,6 @@ const Results = () => {
     };
   }, [selectedSession]);
 
-  // 3. Accuracy Doughnut Data
   const accuracyChartData = useMemo(() => {
     if (!selectedSession) return null;
     const accuracy = (selectedSession.anti?.stats?.accuracy?.mean || 0) * 100;
@@ -153,6 +147,24 @@ const Results = () => {
           data: [accuracy, 100 - accuracy],
           backgroundColor: ['#4ade80', '#e5e7eb'], // Green vs Gray
           borderWidth: 0,
+        },
+      ],
+    };
+  }, [selectedSession]);
+
+  const velocityChartData = useMemo(() => {
+    if (!selectedSession) return null;
+    return {
+      labels: ['Pro-Saccade', 'Anti-Saccade'],
+      datasets: [
+        {
+          label: 'Peak Velocity (deg/s)',
+          data: [
+            selectedSession.pro?.stats?.peakVelocity?.mean || 0,
+            selectedSession.anti?.stats?.peakVelocity?.mean || 0
+          ],
+          backgroundColor: ['rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)'], // Teal & Purple
+          borderWidth: 1
         },
       ],
     };
@@ -197,7 +209,6 @@ const Results = () => {
   return (
       <div className="results-page dashboard-layout">
 
-        {/* ZONE 1: HEADER & CONTROLS */}
         <header className="dashboard-header">
           <div className="header-left">
             <h1>Progress Dashboard</h1>
@@ -226,10 +237,8 @@ const Results = () => {
           </div>
         </header>
 
-        {/* ZONE 2: GRAPHS CONTAINER */}
         <div className="dashboard-grid">
 
-          {/* TOP ROW: Global Timeline */}
           <div className="card timeline-card full-width">
             <div className="card-header">
               <h3>Reaction Time History</h3>
@@ -253,10 +262,8 @@ const Results = () => {
             </div>
           </div>
 
-          {/* BOTTOM ROW: Specific Session Details */}
           {selectedSession && (
               <>
-                {/* 1. Bar Chart: Reaction Speed */}
                 <div className="card detail-card">
                   <h3>Reaction Speed</h3>
                   <div className="chart-container small-chart">
@@ -273,7 +280,6 @@ const Results = () => {
                   </div>
                 </div>
 
-                {/* 2. Doughnut Chart: Accuracy */}
                 <div className="card detail-card">
                   <h3>Inhibition Accuracy</h3>
                   <div className="chart-container small-chart donut-container">
@@ -293,7 +299,6 @@ const Results = () => {
                   </div>
                 </div>
 
-                {/* 3. Stats Card: Consistency */}
                 <div className="card detail-card stats-text-card">
                   <h3>Consistency</h3>
                   <p className="helper-text">Standard Deviation (lower is better)</p>
@@ -317,6 +322,27 @@ const Results = () => {
                           style={{width: `${(selectedSession.anti?.stats?.averageDataQuality || 0) * 100}%`}}
                       ></div>
                     </div>
+                  </div>
+                </div>
+
+                <div className="card detail-card">
+                  <h3>Peak Velocity</h3>
+                  <div className="chart-container small-chart">
+                    <Bar
+                        data={velocityChartData}
+                        options={{
+                          plugins: { legend: { display: false } },
+                          scales: {
+                            y: {
+                              title: { display: true, text: 'deg/s' },
+                              beginAtZero: true
+                            }
+                          }
+                        }}
+                    />
+                  </div>
+                  <div className="stat-footer">
+                    <small>Measures Alertness / Motor Speed</small>
                   </div>
                 </div>
               </>
