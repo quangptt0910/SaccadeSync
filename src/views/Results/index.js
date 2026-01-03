@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useMemo} from 'react';
 import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { selectUser, selectIsAuthenticated } from '../../store/authSlice';
 import { Button } from '../../components';
 import './Results.css';
@@ -37,6 +37,7 @@ ChartJS.register(
 const Results = () => {
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const navigate = useNavigate();
 
   // all the test sessions
   const [historyData, setHistoryData] = useState([]);
