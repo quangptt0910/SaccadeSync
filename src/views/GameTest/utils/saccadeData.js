@@ -241,7 +241,6 @@ export const compareProVsAnti = (proStats, antiStats) => {
     if (!proStats || !antiStats) {
         return { error: 'Both pro and anti statistics required' };
     }
-
     // ADHD Research Indicators:
     // 1. Anti-saccade latency typically 50-100ms longer than pro-saccade
     // 2. Anti-saccade peak velocity may be reduced in ADHD
