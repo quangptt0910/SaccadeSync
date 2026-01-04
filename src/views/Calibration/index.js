@@ -47,9 +47,9 @@ export default function Calibration() {
 
             // Check Accuracy Threshold
             // Note: data.metrics.details contains the raw accuracy numbers (0.0 - 1.0)
-            const leftAcc = data.metrics?.details?.left || 0;
-            const rightAcc = data.metrics?.details?.right || 0;
-            const threshold = 0.85;
+            const leftAcc = data.metrics?.accuracy?.left || 0;
+            const rightAcc = data.metrics?.accuracy?.right || 0;
+            const threshold = 0.849;
 
             if (leftAcc > threshold || rightAcc > threshold) {
                 // 1. Save to Redux Store (Global State)

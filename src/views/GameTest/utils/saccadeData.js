@@ -1,6 +1,8 @@
 // saccadeData.js - Enhanced post-processing analysis for ADHD research
-import { calculateAccuracy } from "./accuracy";
+import { calculateAccuracyResearchGrade} from "./accuracy";
 import { VelocityConfig } from "./velocityConfig";
+import { calculateAdaptiveThreshold } from "./detectSaccade";
+
 /**
  * Analyzes saccade data for a single trial
  * Uses pre-calculated velocities from real-time detection
@@ -12,13 +14,45 @@ import { VelocityConfig } from "./velocityConfig";
  */
 export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {}) => {
     const {
-        requireValidData = true,      // Skip invalid frames
-        minLatency = 50,               // Minimum physiologically plausible latency (ms)
-        maxLatency = 600,              // Maximum expected latency (ms)
-        postSaccadeWindow = 200        // Window after saccade for accuracy (ms)
+        requireValidData = true,
+        minLatency = 50,
+        maxLatency = 600,
+        postSaccadeWindow = 300,
+        adaptiveThreshold = null
     } = options;
 
-    // Metrics to calculate
+    // STEP 1: ADAPTIVE THRESHOLD CALCULATION
+    let threshold;
+
+    if (adaptiveThreshold !== null) {
+        threshold = adaptiveThreshold;
+        console.log(`Using pre-calculated threshold: ${threshold.toFixed(2)} deg/s`);
+    } else {
+        // Fallback: Calculate from this trial's fixation period only
+        const fixationVelocities = [];
+        for (const frame of recordingData) {
+            // Only use frames from CENTER fixation period (safe window)
+            if (frame.timestamp < dotAppearanceTime - 200 && // At least 200ms before dot
+                frame.timestamp > dotAppearanceTime - 2000 && // No more than 2s before
+                frame.velocity !== undefined &&
+                frame.velocity < 100) { // Filter spurious movements
+                fixationVelocities.push(frame.velocity);
+            }
+        }
+
+        if (fixationVelocities.length >= 10) {
+            const mean = fixationVelocities.reduce((s, v) => s + v, 0) / fixationVelocities.length;
+            const variance = fixationVelocities.reduce((s, v) => s + (v - mean) ** 2, 0) / fixationVelocities.length;
+            const sd = Math.sqrt(variance);
+            threshold = Math.max(30, mean + 3 * sd);
+            console.log(`Calculated threshold from trial data: ${threshold.toFixed(2)} deg/s (${fixationVelocities.length} samples)`);
+        } else {
+            threshold = 30;
+            console.log(`Using default threshold: 30 deg/s (insufficient fixation data: ${fixationVelocities.length} samples)`);
+        }
+    }
+
+    // STEP 2: Saccade Detection (existing logic)
     let peakVelocity = 0;
     let saccadeOnsetTime = null;
     let saccadeOffsetTime = null;
@@ -26,18 +60,13 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
     let validFrameCount = 0;
     let invalidFrameCount = 0;
     let binocularDisparityCount = 0;
-
-    // Track saccade state
     let inSaccade = false;
 
-    // Process frames after dot appearance
     for (let i = 0; i < recordingData.length; i++) {
         const currentFrame = recordingData[i];
 
-        // 1. TIMING FILTER: Only analyze data after dot appeared
         if (currentFrame.timestamp < dotAppearanceTime) continue;
 
-        // 2. VALIDITY FILTER: Check if frame is valid
         if (requireValidData && currentFrame.isValid === false) {
             invalidFrameCount++;
             if (currentFrame.invalidReason === 'excessive_disparity') {
@@ -48,87 +77,103 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
 
         validFrameCount++;
 
-        // 3. USE PRE-CALCULATED SACCADE DETECTION
-        // The velocity and isSaccade were already calculated in real-time
-        if (currentFrame.isSaccade && currentFrame.velocity) {
+        const velocity = currentFrame.velocity || 0;
+        const isSaccade = velocity > threshold;
+
+        if (isSaccade) {
             saccadeDetected = true;
 
-            // Track saccade onset (first frame above threshold)
             if (!inSaccade && saccadeOnsetTime === null) {
                 saccadeOnsetTime = currentFrame.timestamp;
                 inSaccade = true;
             }
 
-            // Track peak velocity during entire saccade
-            if (currentFrame.velocity > peakVelocity) {
-                peakVelocity = currentFrame.velocity;
+            if (velocity > peakVelocity) {
+                peakVelocity = velocity;
             }
 
-            // Update offset time (last frame of saccade)
             saccadeOffsetTime = currentFrame.timestamp;
         } else {
-            // Exited saccade
             if (inSaccade) {
                 inSaccade = false;
             }
         }
     }
 
-    // 4. CALCULATE LATENCY
+    // STEP 3: Latency Calculation
     let latency = null;
     let isPhysiologicallyPlausible = false;
 
     if (saccadeOnsetTime !== null) {
         latency = saccadeOnsetTime - dotAppearanceTime;
-
-        // Validate latency is within physiological bounds
         isPhysiologicallyPlausible = latency >= minLatency && latency <= maxLatency;
 
         if (!isPhysiologicallyPlausible) {
-            console.warn(`Latency ${latency}ms outside physiological range [${minLatency}, ${maxLatency}]`);
+            console.warn(`⚠Latency ${latency}ms outside range [${minLatency}, ${maxLatency}]`);
         }
     }
 
-    // 5. CALCULATE SACCADE DURATION
+    // STEP 4: Duration Calculation
     let duration = null;
     if (saccadeOnsetTime !== null && saccadeOffsetTime !== null) {
         duration = saccadeOffsetTime - saccadeOnsetTime;
     }
 
-    // 6. CALCULATE ACCURACY
-    // Use post-saccade fixation period for accuracy measurement
-    const accuracyStartTime = saccadeOffsetTime || dotAppearanceTime + 200; // Default 200ms after dot
-    const accuracyResults = calculateAccuracy(recordingData, accuracyStartTime);
+    // STEP 5: NEW RESEARCH-GRADE ACCURACY CALCULATION
+    const saccadeInfo = {
+        saccadeOnsetTime,
+        saccadeOffsetTime,
+        duration
+    };
 
-    // 7. DATA QUALITY METRICS
+    const accuracyResults = calculateAccuracyResearchGrade(
+        recordingData,
+        dotAppearanceTime,
+        saccadeInfo,
+        {
+            roiRadius: 0.1,           // 10% of screen (~3° visual angle)
+            fixationDuration: 300,     // 300ms research standard
+            saccadicGainWindow: 67,    // 67ms after landing
+            minLatency: minLatency
+        }
+    );
+
+    // STEP 6: Data Quality
     const totalFramesAnalyzed = validFrameCount + invalidFrameCount;
     const dataQuality = totalFramesAnalyzed > 0
         ? validFrameCount / totalFramesAnalyzed
         : 0;
 
-    // 8. COMPILE RESULTS
+    // STEP 7: Compile Results
     return {
-        // Primary Saccade Metrics (for ADHD research)
+        // Primary Saccade Metrics
         isSaccade: saccadeDetected,
-        peakVelocity: peakVelocity,                    // deg/s - Key ADHD biomarker
-        latency: latency,                              // ms - Key ADHD biomarker
-        duration: duration,                            // ms
+        peakVelocity: peakVelocity,
+        latency: latency,
+        duration: duration,
         isPhysiologicallyPlausible: isPhysiologicallyPlausible,
+        usedThreshold: threshold,
 
-        // Accuracy Metrics
-        accuracy: accuracyResults.accuracyScore,       // 0.0 - 1.0
-        averageError: accuracyResults.averageError,    // Normalized distance
+        // ENHANCED Accuracy Metrics (Research-Grade)
+        accuracy: accuracyResults.accuracyScore,
+        accuracyBreakdown: accuracyResults.componentScores,
+        saccadicGain: accuracyResults.saccadicGain,
+        sustainedFixation: accuracyResults.sustainedFixation,
+        fixationStability: accuracyResults.fixationStability,
 
-        // Data Quality Metrics
+        // ADHD Biomarkers
+        adhdMarkers: accuracyResults.adhdMarkers,
+
+        // Data Quality
         quality: {
             validFrames: validFrameCount,
             invalidFrames: invalidFrameCount,
             totalFrames: totalFramesAnalyzed,
-            dataQuality: dataQuality,                  // 0.0 - 1.0
+            dataQuality: dataQuality,
             binocularDisparityEvents: binocularDisparityCount
         },
 
-        // Timing Breakdown (for debugging)
+        // Timing
         timing: {
             dotAppearance: dotAppearanceTime,
             saccadeOnset: saccadeOnsetTime,

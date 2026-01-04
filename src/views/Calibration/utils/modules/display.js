@@ -2,9 +2,6 @@ import { refs } from "./domRefs.js";
 import { CALIBRATION_POINTS, gazeData, calibrationModel } from "./dotCalibration.js";
 import { leastSquares } from "./mathUtils.js";
 
-export function displayCalibrationParameters() {
-}
-
 export function displayPredictionModel() {
 
     const buildMatrices = (eye) => {
@@ -35,6 +32,7 @@ export function displayPredictionModel() {
         }
         const rmse = Math.sqrt(errSum/A.length);
         const accuracy = Math.max(0,1-rmse);
+
         return {success:true, px, py, rmse, accuracy, samples:A.length};
     };
 
@@ -50,10 +48,25 @@ export function displayPredictionModel() {
         calibrationModel.right.coefY = rightRes.py;
     }
 
+    // debug: Store calibration metadata
+    calibrationModel.metadata = {
+        coordinateSystem: 'normalized',  // Model outputs 0-1 range
+        irisExtractionMethod: '9point',  // Uses 5-point average
+        irisIndices: {
+            left: { start: 474, end: 479 },
+            right: { start: 469, end: 474 }
+        },
+        screenDimensions: {
+            width: window.innerWidth,
+            height: window.innerHeight
+        },
+        timestamp: Date.now(),
+        version: '1.0'
+    };
 
     return {
-        accuracy: {left: leftRes.success, right: rightRes.success },
-        rmse: {left: leftRes.success && rightRes.success },
-        details: { left: leftRes.accuracy, right: rightRes.accuracy }
+        sucess: {left: leftRes.success, right: rightRes.success },
+        rmse: {left: leftRes.rmse, right: rightRes.rmse },
+        accuracy: { left: leftRes.accuracy, right: rightRes.accuracy }
     };
 }

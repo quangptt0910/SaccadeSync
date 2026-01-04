@@ -1,8 +1,8 @@
 import { refs } from "./domRefs.js";
 import { faceLandmarker } from "./faceModel.js";
 import { distanceOK } from "./distance.js";
-import { displayCalibrationParameters, displayPredictionModel } from "./display.js";
 import { stopDistanceCheck } from "./video.js";
+import {displayPredictionModel} from "./display";
 
 export let gazeData = [];
 export let calibrationModel = {
@@ -204,8 +204,8 @@ export async function runDotCalibration(onComplete) {
 
         stopDistanceCheck();
 
-        displayCalibrationParameters();
         const metrics = displayPredictionModel();
+        console.log(metrics)
 
         if (onComplete && typeof onComplete === "function") {
             onComplete({

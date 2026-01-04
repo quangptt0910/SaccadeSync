@@ -7,8 +7,8 @@
 export const VelocityConfig = {
     // Screen and Visual Field Parameters
     SCREEN: {
-        WIDTH: window.screen.width || 1920,
-        HEIGHT: window.screen.height || 1080,
+        WIDTH: window.innerWidth || 1920,
+        HEIGHT: window.innerHeight || 1080,
         // Typical viewing distance: 60cm, screen width: ~50cm
         HORIZONTAL_FOV_DEGREES: 40, // Horizontal field of view
         VERTICAL_FOV_DEGREES: 30,   // Vertical field of view
@@ -56,14 +56,3 @@ export const getPixelsPerDegree = () => ({
     horizontal: VelocityConfig.SCREEN.WIDTH / VelocityConfig.SCREEN.HORIZONTAL_FOV_DEGREES,
     vertical: VelocityConfig.SCREEN.HEIGHT / VelocityConfig.SCREEN.VERTICAL_FOV_DEGREES,
 });
-
-/**
- * Converts pixel distance to visual degrees
- * @param {number} pixelDistance - Distance in pixels
- * @param {string} axis - 'horizontal' or 'vertical'
- * @returns {number} Distance in degrees
- */
-export const pixelsToDegrees = (pixelDistance, axis = 'horizontal') => {
-    const ppd = getPixelsPerDegree();
-    return pixelDistance / ppd[axis];
-};

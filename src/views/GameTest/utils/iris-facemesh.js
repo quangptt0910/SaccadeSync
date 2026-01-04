@@ -1,6 +1,6 @@
 // iris-facemesh.js
-import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
-import { detectSaccade } from './detectSaccade';
+import {FaceLandmarker, FilesetResolver} from '@mediapipe/tasks-vision';
+import {detectSaccade} from './detectSaccade';
 
 class IrisFaceMeshTracker {
     constructor() {
@@ -14,8 +14,13 @@ class IrisFaceMeshTracker {
         this.calibrationModel = null;
         // Iris landmark indices in MediaPipe Face Landmarker
         // Indices 468-477 are iris landmarks (468-472: left, 473-477: right)
-        this.LEFT_IRIS_CENTER = 468;
-        this.RIGHT_IRIS_CENTER = 473;
+        // this.LEFT_IRIS_CENTER = 468;
+        // this.RIGHT_IRIS_CENTER = 473;
+        // Use same iris indices as calibration
+        this.RIGHT_IRIS_START = 469;
+        this.RIGHT_IRIS_END = 474;
+        this.LEFT_IRIS_START = 474;
+        this.LEFT_IRIS_END = 479;
 
         // Store current trial context to apply to every new frame
         this.currentContext = {
@@ -24,6 +29,17 @@ class IrisFaceMeshTracker {
             targetX: null,
             targetY: null
         };
+    }
+
+    // Add method to compute iris center (match calibration exactly)
+    computeIrisCenter(landmarks, start, end) {
+        const points = landmarks.slice(start, end);
+        if (!points || points.length === 0) return null;
+
+        const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
+        const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
+
+        return { x: cx, y: cy };
     }
 
     async initialize() {
@@ -65,31 +81,45 @@ class IrisFaceMeshTracker {
     // Helper to apply quadratic model
     predictGaze(iris, eye) {
         if (!this.calibrationModel || !this.calibrationModel[eye]) return null;
-        
+
         const { coefX, coefY } = this.calibrationModel[eye];
-        // Check if coefficients exist and are valid arrays
         if (!coefX || !coefY || coefX.length < 6 || coefY.length < 6) return null;
 
         const x = iris.x;
         const y = iris.y;
 
-        // Quadratic polynomial: a0 + a1*x + a2*y + a3*x*x + a4*y*y + a5*x*y
-        const screenX = coefX[0] + coefX[1]*x + coefX[2]*y + coefX[3]*x*x + coefX[4]*y*y + coefX[5]*x*y;
-        const screenY = coefY[0] + coefY[1]*x + coefY[2]*y + coefY[3]*x*x + coefY[4]*y*y + coefY[5]*x*y;
+        const rawX = coefX[0] + coefX[1]*x + coefX[2]*y + coefX[3]*x*x + coefX[4]*y*y + coefX[5]*x*y;
+        const rawY = coefY[0] + coefY[1]*x + coefY[2]*y + coefY[3]*x*x + coefY[4]*y*y + coefY[5]*x*y;
 
-        return { x: screenX, y: screenY };
+        // If metadata exists, trust it
+        if (this.calibrationModel.metadata?.coordinateSystem === 'normalized') {
+            return { x: rawX, y: rawY };
+        }
+
+        // Fallback: Infer from coefficient magnitude
+        const interceptMagnitude = Math.abs(coefX[0]);
+
+        if (interceptMagnitude > 10) {
+            // Pixel-based model (intercept ~200-1800)
+            return {
+                x: rawX / window.innerWidth,
+                y: rawY / window.innerHeight
+            };
+        } else {
+            // Normalized model (intercept ~-0.5 to 1.5)
+            return { x: rawX, y: rawY };
+        }
     }
 
     async startCamera() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
+            this.videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
+                    width: {ideal: 1920},
+                    height: {ideal: 1080},
                     facingMode: 'user'
                 }
             });
-            this.videoElement.srcObject = stream;
 
             return new Promise((resolve) => {
                 this.videoElement.onloadeddata = () => {
@@ -118,8 +148,8 @@ class IrisFaceMeshTracker {
             const timestamp = Date.now() - this.startTime;
 
             // Extract iris center coordinates (normalized 0-1 range)
-            const leftIris = landmarks[this.LEFT_IRIS_CENTER];
-            const rightIris = landmarks[this.RIGHT_IRIS_CENTER];
+            const rightIris = this.computeIrisCenter(landmarks, this.RIGHT_IRIS_START, this.RIGHT_IRIS_END);
+            const leftIris = this.computeIrisCenter(landmarks, this.LEFT_IRIS_START, this.LEFT_IRIS_END);
 
             // Apply calibration if available
             let calibratedLeft = null;
@@ -129,21 +159,6 @@ class IrisFaceMeshTracker {
             if (this.calibrationModel) {
                 calibratedLeft = this.predictGaze(leftIris, 'left');
                 calibratedRight = this.predictGaze(rightIris, 'right');
-
-                // Heuristic: If coordinates are large (> 2.0), assume they are in pixels and normalize
-                // This handles legacy calibrations that might have been trained on pixel coordinates
-                if (calibratedLeft) {
-                    if (Math.abs(calibratedLeft.x) > 2.0 || Math.abs(calibratedLeft.y) > 2.0) {
-                        calibratedLeft.x /= window.innerWidth;
-                        calibratedLeft.y /= window.innerHeight;
-                    }
-                }
-                if (calibratedRight) {
-                    if (Math.abs(calibratedRight.x) > 2.0 || Math.abs(calibratedRight.y) > 2.0) {
-                        calibratedRight.x /= window.innerWidth;
-                        calibratedRight.y /= window.innerHeight;
-                    }
-                }
 
                 if (calibratedLeft && calibratedRight) {
                     calibratedAvg = {
@@ -155,11 +170,21 @@ class IrisFaceMeshTracker {
                 } else if (calibratedRight) {
                     calibratedAvg = { ...calibratedRight };
                 }
+
+                if (this.trackingData.length < 5) {
+                    console.log(`Frame ${this.trackingData.length + 1} gaze:`, {
+                        leftIris: leftIris,
+                        rightIris: rightIris,
+                        calibratedLeft: calibratedLeft,
+                        calibratedRight: calibratedRight,
+                        calibratedAvg: calibratedAvg
+                    });
+                }
+
             }
 
             const dataPoint = {
                 timestamp: timestamp,
-                // Raw Data
                 leftIris: { x: leftIris.x, y: leftIris.y },
                 rightIris: { x: rightIris.x, y: rightIris.y},
                 avgIris: {
@@ -179,6 +204,14 @@ class IrisFaceMeshTracker {
                 targetY: this.currentContext.targetY
             };
 
+            if (!calibratedAvg && this.calibrationModel) {
+                console.warn(`Frame ${this.trackingData.length}: No calibrated data (left: ${!!calibratedLeft}, right: ${!!calibratedRight})`);
+            }
+
+            if (!calibratedAvg && this.calibrationModel) {
+                console.warn(`Frame ${this.trackingData.length}: No calibrated data (left: ${!!calibratedLeft}, right: ${!!calibratedRight})`);
+            }
+
             this.trackingData.push(dataPoint);
 
             // Real-time saccade detection
@@ -195,12 +228,24 @@ class IrisFaceMeshTracker {
         if (this.trackingData.length < 2) return;
 
         const prevPoint = this.trackingData[this.trackingData.length - 2];
-        
         const result = detectSaccade(currentPoint, prevPoint);
 
-        if (result.isSaccade) {
-            currentPoint.isSaccade = true;
-            currentPoint.velocity = result.velocity;
+        if (this.trackingData.length <= 10) {
+            console.log(`Saccade detection frame ${this.trackingData.length}:`, {
+                isValid: result.isValid,
+                velocity: result.velocity,
+                isSaccade: result.isSaccade,
+                reason: result.reason
+            });
+        }
+
+        // Always store velocity and saccade status
+        currentPoint.isSaccade = result.isSaccade;
+        currentPoint.velocity = result.velocity;
+        
+        // Optional: Store debug info
+        if (!result.isValid) {
+             currentPoint.debug = result.reason;
         }
     }
 

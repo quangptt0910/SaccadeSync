@@ -69,6 +69,8 @@ const GameTest = () => {
     // Fetch calibration from Firebase if not in Redux
     useEffect(() => {
         const fetchCalibration = async () => {
+            console.log("Fetching calibration. isCalibrated:", isCalibrated, "model valid:", isModelValid(calibrationModel));
+
             // If we are already calibrated and model is valid, no need to fetch
             if (isCalibrated && isModelValid(calibrationModel)) return;
             
@@ -148,6 +150,13 @@ const GameTest = () => {
     const handleStartProTest = async () => {
         enterFullScreen(); // 1. Go Full Screen
 
+        // Wait for calibration to be ready
+        let attempts = 0;
+        while ((!isCalibrated || !isModelValid(calibrationModel)) && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+
         // 2. Initialize and start iris tracking
         if (!irisTracker.current) {
             irisTracker.current = new IrisFaceMeshTracker();
@@ -156,11 +165,13 @@ const GameTest = () => {
 
         // Pass calibration model if available and valid
         // We check Redux state again here
-        if (isCalibrated && isModelValid(calibrationModel)) {
-            console.log("Using calibration model:", calibrationModel);
-            irisTracker.current.setCalibrationModel(calibrationModel);
+        const currentModel = calibrationModel;
+        if (isCalibrated && isModelValid(currentModel)) {
+            console.log("Using calibration model:", currentModel);
+            irisTracker.current.setCalibrationModel(currentModel);
         } else {
-            console.warn("No valid calibration found (isCalibrated=" + isCalibrated + "). Using raw iris data.");
+            console.error("NO VALID CALIBRATION - Will use raw data");
+            // Add user warning here
         }
 
         await irisTracker.current.startTracking();
@@ -221,6 +232,33 @@ const GameTest = () => {
                 irisTracker.current.addTrialContext(0, `START_${testPhase.toUpperCase()}_PHASE`);
             }
 
+            let baselineThreshold = 30; // Default
+
+            if (irisTracker.current) {
+                const initialData = irisTracker.current.getTrackingData();
+
+                // Get velocities from the LAST 2 seconds of pre-trial fixation
+                const twoSecondsAgo = Date.now() - irisTracker.current.startTime - 2000;
+                const fixationVelocities = initialData
+                    .filter(frame =>
+                        frame.timestamp > Math.max(0, twoSecondsAgo) &&
+                        frame.velocity !== undefined &&
+                        frame.velocity < 100 // Filter out any spurious movements
+                    )
+                    .map(frame => frame.velocity);
+
+                if (fixationVelocities.length >= 20) {
+                    const mean = fixationVelocities.reduce((s, v) => s + v, 0) / fixationVelocities.length;
+                    const variance = fixationVelocities.reduce((s, v) => s + (v - mean) ** 2, 0) / fixationVelocities.length;
+                    const sd = Math.sqrt(variance);
+                    baselineThreshold = Math.max(30, mean + 3 * sd); // Mean + 3SD, minimum 30
+
+                    console.log(`Baseline Adaptive Threshold: ${baselineThreshold.toFixed(2)} deg/s (from ${fixationVelocities.length} fixation samples, mean=${mean.toFixed(2)}, sd=${sd.toFixed(2)})`);
+                } else {
+                    console.warn(`Not enough fixation data (${fixationVelocities.length} samples). Using default threshold: 30 deg/s`);
+                }
+            }
+
             for (let i = 0; i < trialsAmount; i++) {
                 if (!mounted.current) break;
                 setTrialCount(i + 1);
@@ -260,13 +298,11 @@ const GameTest = () => {
                 if (irisTracker.current) {
                     // Now get the data, which includes the movement that just happened
                     const allData = irisTracker.current.getTrackingData();
-
-                    // Analyze from the moment the dot appeared until now
-                    // Using new analyzeSaccadeData from saccadeData.js
                     const analysis = analyzeSaccadeData(allData, dotAppearanceTime, {
                         requireValidData: true,
                         minLatency: 50,
-                        maxLatency: 600
+                        maxLatency: 600,
+                        adaptiveThreshold: baselineThreshold
                     });
 
                     analysis.trailId = i + 1;
@@ -314,15 +350,6 @@ const GameTest = () => {
                     setShowBreak(true);
                 } else {
                     // If we just finished Anti-Saccade, Finish the game
-                    
-                    // Perform final comparison
-                    // Note: We need to use the functional update of setTestResults or a ref to access the 'pro' stats we just saved
-                    // But since setTestResults is async, we can't rely on 'testResults.pro' being updated yet in this closure.
-                    // However, we have 'currentPhaseTrials' (which is anti) and we can assume 'testResults.pro' was set in the previous run.
-                    // Actually, 'testResults' in this closure is stale (from render start).
-                    // Better to use a ref for immediate access or just calculate comparison later/in a separate effect.
-                    // For simplicity, let's just finish here and let the Results page handle display, 
-                    // or calculate comparison using the functional update pattern if we want to save it now.
 
                     const proStats = resultsRef.current.pro.stats;
                     const antiStats = phaseStats;
