@@ -260,7 +260,6 @@ const GameTest = () => {
                 if (irisTracker.current) {
                     const allData = irisTracker.current.getTrackingData();
 
-                    // Extract velocities from CENTER fixation period ONLY
                     const fixationVelocities = allData
                         .filter(frame =>
                             frame.timestamp >= fixationStartTime &&
@@ -311,7 +310,7 @@ const GameTest = () => {
                         requireValidData: true,
                         minLatency: 50,
                         maxLatency: 600,
-                        adaptiveThreshold: baselineThreshold
+                        adaptiveThreshold: trialThreshold
                     });
 
                     analysis.trailId = i + 1;

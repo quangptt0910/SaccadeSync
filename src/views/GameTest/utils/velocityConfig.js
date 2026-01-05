@@ -1,4 +1,4 @@
-// velocityConfig.js
+
 /**
  * Configuration constants for velocity calculations in eye-tracking
  * Based on ADHD research standards and visual science principles
@@ -82,8 +82,6 @@ export const getPixelsPerDegree = () => ({
     vertical: VelocityConfig.SCREEN.HEIGHT / VelocityConfig.SCREEN.VERTICAL_FOV_DEGREES,
 });
 
-import {VelocityConfig} from "./velocityConfig";
-
 /**
  * Calculate adaptive threshold from fixation period velocities
  * This should be called DURING each trial's center fixation
@@ -98,7 +96,7 @@ export const calculatePerTrialThreshold = (fixationVelocities) => {
 
     // Need minimum samples for robust statistics
     if (cleanFixationVelocities.length < ADAPTIVE.MIN_FIXATION_SAMPLES) {
-        console.warn(`⚠️ Insufficient fixation samples (${cleanFixationVelocities.length}/${ADAPTIVE.MIN_FIXATION_SAMPLES}). Using static threshold.`);
+        console.warn(`Insufficient fixation samples (${cleanFixationVelocities.length}/${ADAPTIVE.MIN_FIXATION_SAMPLES}). Using static threshold.`);
         return STATIC_THRESHOLD_DEG_PER_SEC;
     }
 

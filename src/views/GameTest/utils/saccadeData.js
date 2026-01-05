@@ -1,5 +1,5 @@
 // saccadeData.js - Enhanced post-processing analysis for ADHD research
-import { calculateAccuracyResearchGrade} from "./accuracy";
+import { calculateAccuracy } from "./accuracyAdjust";
 import { VelocityConfig } from "./velocityConfig";
 import { calculateAdaptiveThreshold } from "./detectSaccade";
 
@@ -26,8 +26,8 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
 
     // Get task-specific latency bounds
     const latencyConfig = trialType === 'pro'
-        ? VelocityConfig.SACCADE.LATENCY_VALIDATION.PRO_SACCADE
-        : VelocityConfig.SACCADE.LATENCY_VALIDATION.ANTI_SACCADE;
+        ? VelocityConfig.LATENCY_VALIDATION.PRO_SACCADE
+        : VelocityConfig.LATENCY_VALIDATION.ANTI_SACCADE;
     console.log(`Trial Analysis (${trialType}): Threshold=${adaptiveThreshold.toFixed(2)}°/s, Latency Window=[${latencyConfig.MIN_MS}, ${latencyConfig.MAX_MS}]ms`);
 
     // Saccade Detection (existing logic)
@@ -56,7 +56,7 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         validFrameCount++;
 
         const velocity = currentFrame.velocity || 0;
-        const isSaccade = velocity > threshold;
+        const isSaccade = velocity > adaptiveThreshold;
 
         if (isSaccade) {
             saccadeDetected = true;
@@ -122,15 +122,18 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         duration
     };
 
-    const accuracyResults = calculateAccuracyResearchGrade(
+    const accuracyResults = calculateAccuracy(
         recordingData,
         dotAppearanceTime,
         saccadeInfo,
         {
-            roiRadius: 0.1,           // 10% of screen (~3° visual angle)
-            fixationDuration: 300,     // 300ms research standard
-            saccadicGainWindow: 67,    // 67ms after landing
-            minLatency: minLatency
+            calibrationAccuracy: 0.91,
+            trackerFPS: 30,             // webcam frame rate
+            roiRadius: null,
+            fixationDuration: 300,
+            saccadicGainWindow: 100,
+            minLatency: minLatency,
+            fixationStabilityThreshold: 0.70
         }
     );
 
