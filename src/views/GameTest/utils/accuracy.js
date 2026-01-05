@@ -31,8 +31,8 @@ const calculateSaccadicGain = (gazeX, gazeY, startX, startY, targetX, targetY) =
         gain: gain,
         requiredAmplitude: requiredAmplitude,
         actualAmplitude: actualAmplitude,
-        isHypometric: gain < 0.85,  // ADHD marker
-        isHypermetric: gain > 1.15
+        isHypometric: gain < 0.76,  // ADHD marker
+        isHypermetric: gain > 1.04
     };
 };
 
@@ -251,7 +251,7 @@ export const calculateAccuracyResearchGrade = (
         0.4 * stabilityScore                       // 40% sustained attention (KEY for ADHD)
     );
 
-    console.log('📊 Accuracy Breakdown:', {
+    console.log('Accuracy Breakdown:', {
         initialLanding: initialLandingAccurate ? 'YES' : 'NO',
         gainScore: gainScore.toFixed(3),
         stabilityScore: stabilityScore.toFixed(3),

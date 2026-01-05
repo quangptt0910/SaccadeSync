@@ -18,41 +18,19 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         minLatency = 50,
         maxLatency = 600,
         postSaccadeWindow = 300,
-        adaptiveThreshold = null
+        adaptiveThreshold = 30,
+        trialType = 'pro'
     } = options;
 
-    // STEP 1: ADAPTIVE THRESHOLD CALCULATION
-    let threshold;
 
-    if (adaptiveThreshold !== null) {
-        threshold = adaptiveThreshold;
-        console.log(`Using pre-calculated threshold: ${threshold.toFixed(2)} deg/s`);
-    } else {
-        // Fallback: Calculate from this trial's fixation period only
-        const fixationVelocities = [];
-        for (const frame of recordingData) {
-            // Only use frames from CENTER fixation period (safe window)
-            if (frame.timestamp < dotAppearanceTime - 200 && // At least 200ms before dot
-                frame.timestamp > dotAppearanceTime - 2000 && // No more than 2s before
-                frame.velocity !== undefined &&
-                frame.velocity < 100) { // Filter spurious movements
-                fixationVelocities.push(frame.velocity);
-            }
-        }
 
-        if (fixationVelocities.length >= 10) {
-            const mean = fixationVelocities.reduce((s, v) => s + v, 0) / fixationVelocities.length;
-            const variance = fixationVelocities.reduce((s, v) => s + (v - mean) ** 2, 0) / fixationVelocities.length;
-            const sd = Math.sqrt(variance);
-            threshold = Math.max(30, mean + 3 * sd);
-            console.log(`Calculated threshold from trial data: ${threshold.toFixed(2)} deg/s (${fixationVelocities.length} samples)`);
-        } else {
-            threshold = 30;
-            console.log(`Using default threshold: 30 deg/s (insufficient fixation data: ${fixationVelocities.length} samples)`);
-        }
-    }
+    // Get task-specific latency bounds
+    const latencyConfig = trialType === 'pro'
+        ? VelocityConfig.SACCADE.LATENCY_VALIDATION.PRO_SACCADE
+        : VelocityConfig.SACCADE.LATENCY_VALIDATION.ANTI_SACCADE;
+    console.log(`Trial Analysis (${trialType}): Threshold=${adaptiveThreshold.toFixed(2)}°/s, Latency Window=[${latencyConfig.MIN_MS}, ${latencyConfig.MAX_MS}]ms`);
 
-    // STEP 2: Saccade Detection (existing logic)
+    // Saccade Detection (existing logic)
     let peakVelocity = 0;
     let saccadeOnsetTime = null;
     let saccadeOffsetTime = null;
@@ -100,8 +78,26 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         }
     }
 
-    // STEP 3: Latency Calculation
+    //  Latency Calculation & Validation
     let latency = null;
+    let latencyClassification = 'none';
+
+    if (saccadeOnsetTime !== null) {
+        latency = saccadeOnsetTime - dotAppearanceTime;
+
+        if (latency < latencyConfig.EXPRESS_THRESHOLD_MS) {
+            latencyClassification = 'express';  // Very fast, possibly anticipatory
+        } else if (latency >= latencyConfig.MIN_MS && latency <= latencyConfig.MAX_MS) {
+            latencyClassification = 'normal';   // Valid reaction
+        } else if (latency > latencyConfig.MAX_MS) {
+            latencyClassification = 'delayed';  // Attention lapse
+        } else {
+            latencyClassification = 'invalid';  // Too fast (< 90ms)
+        }
+
+        console.log(`Latency: ${latency}ms [${latencyClassification}]`);
+    }
+
     let isPhysiologicallyPlausible = false;
 
     if (saccadeOnsetTime !== null) {
@@ -113,13 +109,13 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         }
     }
 
-    // STEP 4: Duration Calculation
+    //  Duration Calculation
     let duration = null;
     if (saccadeOnsetTime !== null && saccadeOffsetTime !== null) {
         duration = saccadeOffsetTime - saccadeOnsetTime;
     }
 
-    // STEP 5: NEW RESEARCH-GRADE ACCURACY CALCULATION
+    //  NEW RESEARCH-GRADE ACCURACY CALCULATION
     const saccadeInfo = {
         saccadeOnsetTime,
         saccadeOffsetTime,
@@ -138,7 +134,7 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         }
     );
 
-    // STEP 6: Data Quality
+    //  Data Quality
     const totalFramesAnalyzed = validFrameCount + invalidFrameCount;
     const dataQuality = totalFramesAnalyzed > 0
         ? validFrameCount / totalFramesAnalyzed
@@ -150,9 +146,10 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         isSaccade: saccadeDetected,
         peakVelocity: peakVelocity,
         latency: latency,
+        latencyClassification: latencyClassification,
         duration: duration,
         isPhysiologicallyPlausible: isPhysiologicallyPlausible,
-        usedThreshold: threshold,
+        usedThreshold: adaptiveThreshold,
 
         // ENHANCED Accuracy Metrics (Research-Grade)
         accuracy: accuracyResults.accuracyScore,

@@ -13,6 +13,7 @@ import {
     compareProVsAnti
 } from './utils/saccadeData';
 import IrisFaceMeshTracker from "./utils/iris-facemesh";
+import {calculatePerTrialThreshold} from "./utils/velocityConfig";
 
 
 const GameTest = () => {
@@ -232,32 +233,6 @@ const GameTest = () => {
                 irisTracker.current.addTrialContext(0, `START_${testPhase.toUpperCase()}_PHASE`);
             }
 
-            let baselineThreshold = 30; // Default
-
-            if (irisTracker.current) {
-                const initialData = irisTracker.current.getTrackingData();
-
-                // Get velocities from the LAST 2 seconds of pre-trial fixation
-                const twoSecondsAgo = Date.now() - irisTracker.current.startTime - 2000;
-                const fixationVelocities = initialData
-                    .filter(frame =>
-                        frame.timestamp > Math.max(0, twoSecondsAgo) &&
-                        frame.velocity !== undefined &&
-                        frame.velocity < 100 // Filter out any spurious movements
-                    )
-                    .map(frame => frame.velocity);
-
-                if (fixationVelocities.length >= 20) {
-                    const mean = fixationVelocities.reduce((s, v) => s + v, 0) / fixationVelocities.length;
-                    const variance = fixationVelocities.reduce((s, v) => s + (v - mean) ** 2, 0) / fixationVelocities.length;
-                    const sd = Math.sqrt(variance);
-                    baselineThreshold = Math.max(30, mean + 3 * sd); // Mean + 3SD, minimum 30
-
-                    console.log(`Baseline Adaptive Threshold: ${baselineThreshold.toFixed(2)} deg/s (from ${fixationVelocities.length} fixation samples, mean=${mean.toFixed(2)}, sd=${sd.toFixed(2)})`);
-                } else {
-                    console.warn(`Not enough fixation data (${fixationVelocities.length} samples). Using default threshold: 30 deg/s`);
-                }
-            }
 
             for (let i = 0; i < trialsAmount; i++) {
                 if (!mounted.current) break;
@@ -268,7 +243,41 @@ const GameTest = () => {
                 if (irisTracker.current) {
                     irisTracker.current.addTrialContext(i + 1, `${testPhase} - center`);
                 }
+                // Record when fixation starts
+                const fixationStartTime = irisTracker.current
+                    ? Date.now() - irisTracker.current.startTime
+                    : Date.now();
+
                 await wait(getFixationTime());
+
+                // Record when fixation ends
+                const fixationEndTime = irisTracker.current
+                    ? Date.now() - irisTracker.current.startTime
+                    : Date.now();
+
+                let trialThreshold = 30;
+
+                if (irisTracker.current) {
+                    const allData = irisTracker.current.getTrackingData();
+
+                    // Extract velocities from CENTER fixation period ONLY
+                    const fixationVelocities = allData
+                        .filter(frame =>
+                            frame.timestamp >= fixationStartTime &&
+                            frame.timestamp <= fixationEndTime &&
+                            frame.velocity !== undefined &&
+                            frame.velocity !== null &&
+                            !isNaN(frame.velocity) &&
+                            frame.velocity < 100  // Filter spurious movements
+                        )
+                        .map(frame => frame.velocity);
+
+                    if (fixationVelocities.length >= 20) {
+                        trialThreshold = calculatePerTrialThreshold(fixationVelocities);
+                    } else {
+                        console.warn(`Trial ${i+1}: Insufficient fixation data (${fixationVelocities.length} samples). Using default threshold: 30 deg/s`);
+                    }
+                }
 
                 // 2. Gap
                 if (!mounted.current) break;
@@ -347,16 +356,17 @@ const GameTest = () => {
 
                 if (testPhase === 'pro') {
                     // If we just finished Pro-Saccade, trigger break time
+                    console.log("Saccade Analysis Data:", currentPhaseTrials);
                     setShowBreak(true);
                 } else {
                     // If we just finished Anti-Saccade, Finish the game
-
+                    console.log("Anti-Saccade Analysis Data:", currentPhaseTrials);
                     const proStats = resultsRef.current.pro.stats;
                     const antiStats = phaseStats;
                     const comparison = compareProVsAnti(proStats, antiStats);
 
                     resultsRef.current.comparison = comparison;
-
+                    
                     setTestResults(prev => ({ ...prev, comparison }));
 
                     await saveMetricsToFirebase(user.uid, resultsRef.current);
