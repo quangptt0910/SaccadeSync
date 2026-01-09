@@ -39,6 +39,31 @@
     color: #374151;
 }
 
+/* New layout for Instructions + Image */
+.cal-how-it-works-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: center;
+}
+
+.cal-illustration {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f3f4f6;
+    border-radius: 12px;
+    height: 100%;
+    min-height: 200px;
+    overflow: hidden;
+}
+
+.cal-illustration img {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
 .cal-highlight {
     font-weight: 500;
     color: #4b5563;
@@ -177,6 +202,59 @@
     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
+#camera-permission-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 20000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.permission-panel {
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.icon-warning {
+    width: 60px;
+    height: 60px;
+    background-color: #fef2f2;
+    color: #dc2626;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: bold;
+    margin: 0 auto 20px auto;
+}
+
+.permission-panel h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 10px;
+}
+
+.permission-panel p {
+    color: #4b5563;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.permission-panel .sub-text {
+    font-size: 0.95rem;
+    color: #6b7280;
+    margin-bottom: 25px;
+}
+
 .calibration-feedback {
     background-color: #f9fafb;
     border: 1px solid #e5e7eb;
@@ -192,6 +270,12 @@
 
 .feedback-failed {
     border-left: 4px solid #ef4444;
+}
+
+@media (max-width: 768px) {
+    .cal-how-it-works-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 640px) {
