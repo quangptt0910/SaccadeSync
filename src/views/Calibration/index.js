@@ -107,8 +107,15 @@ export default function Calibration() {
                             </ul>
                         </div>
                     </div>
-                    <div className="cal-illustration">
 
+                    <div className="cal-illustration">
+                        <div className="demo-screen-container">
+                            <div className="demo-screen">
+                                <div className="demo-dot"></div>
+                                <div className="demo-message">Demo View</div>
+                            </div>
+                            <p className="demo-caption">The dot will move to 9 points.</p>
+                        </div>
                     </div>
                 </section>
 
