@@ -7,6 +7,7 @@ export function initDomRefs() {
 
     refs.videoContainer = document.querySelector(".video-container");
     refs.staticPreview = document.getElementById("static-preview");
+    refs.permissionModal = document.getElementById("camera-permission-modal");
 
     refs.startBtn = document.getElementById("start-calibration-btn");
     refs.stopBtn = document.getElementById("stop-calibration-btn");

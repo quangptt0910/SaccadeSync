@@ -45,6 +45,10 @@ export async function startDistanceCheck() {
     refs.stopBtn.style.display = "inline-block";
     refs.distanceOverlay.style.display = "flex";
 
+    if (refs.runCalibBtnOverlay) {
+        refs.runCalibBtnOverlay.style.display = "none";
+    }
+
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "user" },
@@ -57,6 +61,12 @@ export async function startDistanceCheck() {
     } catch (err) {
         console.error("Camera error:", err);
         stopDistanceCheck();
+
+        if (refs.permissionModal) {
+            refs.permissionModal.style.display = "flex";
+        } else {
+            alert("Camera access denied. Please enable camera permissions to continue.");
+        }
     }
 }
 
