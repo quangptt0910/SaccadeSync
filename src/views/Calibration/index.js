@@ -80,12 +80,20 @@ export default function Calibration() {
         <div className="calibration-page">
             <div className="calibration-container">
 
-                <section>
-                    <h1 className="cal-section-title">Gaze Calibration</h1>
-                    <p className="cal-intro-text">
-                        Before starting the test, we need to calibrate the system to your gaze.
-                        This short process ensures accurate and personalized measurements for the experiments.
-                    </p>
+                <section className="cal-header-grid">
+                    <div className="cal-header-content">
+                        <h1 className="cal-section-title">Gaze Calibration</h1>
+                        <p className="cal-intro-text">
+                            Before starting the test, we need to calibrate the system to your gaze.
+                            This short process ensures accurate and personalized measurements for the experiments.
+                        </p>
+                    </div>
+                    <div className="cal-header-image">
+                        <img
+                            src="/assets/calibration-eye.jpg"
+                            alt="Gaze Calibration"
+                        />
+                    </div>
                 </section>
 
                 <hr className="cal-divider" />
