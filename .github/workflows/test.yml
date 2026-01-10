@@ -1,0 +1,152 @@
+name: Test Suite
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:ci
+        env:
+          CI: true
+          REACT_APP_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          REACT_APP_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          REACT_APP_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          REACT_APP_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          REACT_APP_FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+
+      - name: Check test pass rate
+        id: test-results
+        run: |
+          # Parse coverage and test results
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(cat coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | head -1 | grep -o '[0-9.]*')
+            echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          fi
+          echo "Test run completed"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-${{ matrix.node-version }}
+          path: coverage/
+          retention-days: 7
+
+  quality-gate:
+    name: Quality Gate (90% Pass Rate)
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests and check pass rate
+        run: |
+          set +e
+          npm run test:ci 2>&1 | tee test-output.txt
+          TEST_EXIT_CODE=$?
+          set -e
+          
+          # Extract test results
+          TOTAL_TESTS=$(grep -oP 'Tests:\s+\K\d+' test-output.txt | tail -1 || echo "0")
+          PASSED_TESTS=$(grep -oP '\d+(?=\s+passed)' test-output.txt | tail -1 || echo "0")
+          FAILED_TESTS=$(grep -oP '\d+(?=\s+failed)' test-output.txt | tail -1 || echo "0")
+          
+          if [ "$TOTAL_TESTS" -eq "0" ]; then
+            echo "No tests found or could not parse test results"
+            # Check if tests ran at all
+            if grep -q "Test Suites:" test-output.txt; then
+              TOTAL_TESTS=$(grep -oP 'Test Suites:\s+\d+\s+passed,\s+\K\d+' test-output.txt || echo "0")
+              if [ "$TOTAL_TESTS" -eq "0" ]; then
+                TOTAL_TESTS=$(grep -oP 'Test Suites:\s+\K\d+' test-output.txt || echo "0")
+              fi
+            fi
+          fi
+          
+          echo "Total Tests: $TOTAL_TESTS"
+          echo "Passed: $PASSED_TESTS"
+          echo "Failed: $FAILED_TESTS"
+          
+          if [ "$TOTAL_TESTS" -gt "0" ]; then
+            PASS_RATE=$(echo "scale=2; ($PASSED_TESTS / $TOTAL_TESTS) * 100" | bc)
+            echo "Pass Rate: $PASS_RATE%"
+            
+            # Check if pass rate is >= 90%
+            if (( $(echo "$PASS_RATE >= 90" | bc -l) )); then
+              echo "✅ Quality gate passed! Pass rate: $PASS_RATE%"
+              exit 0
+            else
+              echo "❌ Quality gate failed! Pass rate: $PASS_RATE% (required: 90%)"
+              exit 1
+            fi
+          else
+            # If we can't determine test count, use exit code
+            if [ $TEST_EXIT_CODE -eq 0 ]; then
+              echo "✅ All tests passed!"
+              exit 0
+            else
+              echo "❌ Tests failed!"
+              exit 1
+            fi
+          fi
+        env:
+          CI: true
+          REACT_APP_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          REACT_APP_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          REACT_APP_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          REACT_APP_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          REACT_APP_FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+
+  block-merge:
+    name: Block Merge if Tests Fail
+    runs-on: ubuntu-latest
+    needs: [test, quality-gate]
+    if: always()
+    
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.test.result }}" == "failure" ] || [ "${{ needs.quality-gate.result }}" == "failure" ]; then
+            echo "❌ Tests did not pass the 90% threshold. Merge is blocked."
+            exit 1
+          fi
+          echo "✅ All quality gates passed. Ready to merge!"
