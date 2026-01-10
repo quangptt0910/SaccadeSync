@@ -7,6 +7,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:ci": "react-scripts test --coverage --watchAll=false --ci --passWithNoTests",
     "eject": "react-scripts eject"
   },
   "private": true,
@@ -22,6 +23,22 @@
     "react-redux": "^9.0.4",
     "react-router-dom": "^6.20.0",
     "react-scripts": "^5.0.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^14.2.0",
+    "@testing-library/user-event": "^14.5.2"
+  },
+  "jest": {
+    "testMatch": [
+      "<rootDir>/src/__tests__/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!src/index.js",
+      "!src/__tests__/**",
+      "!src/__mocks__/**"
+    ]
   },
   "browserslist": {
     "production": [
