@@ -3,9 +3,15 @@ import { faceLandmarker } from "./faceModel.js";
 import { handleDistanceState } from "./distance.js";
 import { runningDot, abortDot, showFsWarning } from "./dotCalibration.js";
 
+/** @type {boolean} Flag indicating if the camera loop is currently active. */
 export let runningCamera = false;
 let lastTime = -1;
 
+/**
+ * The main animation loop for processing camera frames.
+ * Captures frames from the video element, runs the face landmarker, and checks distance.
+ * Also handles warning overlays during calibration if the face is lost.
+ */
 export function cameraLoop() {
     if (!runningCamera) return;
     requestAnimationFrame(cameraLoop);
@@ -31,6 +37,11 @@ export function cameraLoop() {
     if (runningDot && !ok && !abortDot) showFsWarning();
 }
 
+/**
+ * Requests camera permissions, initializes the video stream, and starts the processing loop.
+ * Also manages UI state to show video elements and hide static previews.
+ * @returns {Promise<void>}
+ */
 export async function startDistanceCheck() {
     if (runningCamera) return;
 
@@ -70,6 +81,9 @@ export async function startDistanceCheck() {
     }
 }
 
+/**
+ * Stops the camera stream, releases tracks, and resets the UI to the static preview state.
+ */
 export function stopDistanceCheck() {
     runningCamera = false;
 

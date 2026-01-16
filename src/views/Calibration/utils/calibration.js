@@ -3,6 +3,13 @@ import { initFaceLandmarker } from "./modules/faceModel.js";
 import { startDistanceCheck, stopDistanceCheck } from "./modules/video.js";
 import { runDotCalibration } from "./modules/dotCalibration.js";
 
+/**
+ * Initializes the entire calibration subsystem.
+ * Sets up DOM references, loads the AI model, and attaches event listeners to UI buttons.
+ *
+ * @param {Function} onComplete - Callback executed when the calibration sequence finishes successfully.
+ * @returns {Promise<Function>} A cleanup function that removes event listeners.
+ */
 export async function initCalibration(onComplete) {
     initDomRefs();
     await initFaceLandmarker();
