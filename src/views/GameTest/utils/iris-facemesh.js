@@ -1,4 +1,4 @@
-// iris-facemesh.js
+// GameTest\iris-facemesh.js
 import {FaceLandmarker, FilesetResolver} from '@mediapipe/tasks-vision';
 import {detectSaccade} from './detectSaccade';
 
@@ -13,14 +13,11 @@ class IrisFaceMeshTracker {
         this.previousFrame = null;
         this.calibrationModel = null;
         // Iris landmark indices in MediaPipe Face Landmarker
-        // Indices 468-477 are iris landmarks (468-472: left, 473-477: right)
-        // this.LEFT_IRIS_CENTER = 468;
-        // this.RIGHT_IRIS_CENTER = 473;
+
         // Use same iris indices as calibration
-        this.RIGHT_IRIS_START = 469;
-        this.RIGHT_IRIS_END = 474;
-        this.LEFT_IRIS_START = 474;
-        this.LEFT_IRIS_END = 479;
+        this.RIGHT_IRIS_CENTER = 473;
+        this.LEFT_IRIS_CENTER = 468;
+
 
         // Store current trial context to apply to every new frame
         this.currentContext = {
@@ -32,14 +29,20 @@ class IrisFaceMeshTracker {
     }
 
     // Add method to compute iris center (match calibration exactly)
-    computeIrisCenter(landmarks, start, end) {
-        const points = landmarks.slice(start, end);
-        if (!points || points.length === 0) return null;
+    // computeIrisCenter(landmarks, start, end) {
+    //     const points = landmarks.slice(start, end);
+    //     if (!points || points.length === 0) return null;
+    //
+    //     const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
+    //     const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
+    //
+    //     return { x: cx, y: cy };
+    // }
 
-        const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
-        const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
-
-        return { x: cx, y: cy };
+    computeIrisCenter(landmarks, index) {
+        const point = landmarks[index];
+        if (!point) return null;
+        return { x: point.x, y: point.y };
     }
 
     async initialize() {
@@ -147,9 +150,34 @@ class IrisFaceMeshTracker {
             const landmarks = results.faceLandmarks[0];
             const timestamp = Date.now() - this.startTime;
 
-            // Extract iris center coordinates (normalized 0-1 range)
-            const rightIris = this.computeIrisCenter(landmarks, this.RIGHT_IRIS_START, this.RIGHT_IRIS_END);
-            const leftIris = this.computeIrisCenter(landmarks, this.LEFT_IRIS_START, this.LEFT_IRIS_END);
+            // Extract raw iris centers
+            const rightIrisRaw = this.computeIrisCenter(landmarks, this.RIGHT_IRIS_CENTER);
+            const leftIrisRaw = this.computeIrisCenter(landmarks, this.LEFT_IRIS_CENTER);
+
+            // 🔧 FIX: Un-mirror X coordinates
+            const rightIris = rightIrisRaw ? {
+                x: 1 - rightIrisRaw.x,
+                y: rightIrisRaw.y
+            } : null;
+
+            const leftIris = leftIrisRaw ? {
+                x: 1 - leftIrisRaw.x,
+                y: leftIrisRaw.y
+            } : null;
+
+
+            // 🔍 DIAGNOSTIC - Log first 3 frames
+            if (this.trackingData.length < 3) {
+                console.log(`🎮 Game Frame ${this.trackingData.length + 1}:`, {
+                    leftIris: leftIris,
+                    rightIris: rightIris,
+                    totalLandmarks: landmarks.length,
+                    videoSize: {
+                        width: this.videoElement.videoWidth,
+                        height: this.videoElement.videoHeight
+                    }
+                });
+            }
 
             // Apply calibration if available
             let calibratedLeft = null;
@@ -169,6 +197,18 @@ class IrisFaceMeshTracker {
                     calibratedAvg = { ...calibratedLeft };
                 } else if (calibratedRight) {
                     calibratedAvg = { ...calibratedRight };
+                }
+
+                // 🔍 DIAGNOSTIC - Log first 3 calibrated predictions
+                if (this.trackingData.length < 3) {
+                    console.log(`🎯 Calibrated Prediction ${this.trackingData.length + 1}:`, {
+                        raw: { left: leftIris, right: rightIris },
+                        calibrated: { left: calibratedLeft, right: calibratedRight, avg: calibratedAvg },
+                        model: {
+                            coefX_left_intercept: this.calibrationModel.left.coefX[0].toFixed(4),
+                            coefY_left_intercept: this.calibrationModel.left.coefY[0].toFixed(4)
+                        }
+                    });
                 }
 
                 if (this.trackingData.length < 5) {
@@ -297,11 +337,11 @@ class IrisFaceMeshTracker {
             targetY = 0.5;
         } else if (dotPosition === 'left' || (typeof dotPosition === 'string' && dotPosition.includes('left'))) {
             // For anti-saccade, target is opposite to the stimulus
-            targetX = isAnti ? 0.9 : 0.1;
+            targetX = isAnti ? 0.8 : 0.2;
             targetY = 0.5;
         } else if (dotPosition === 'right' || (typeof dotPosition === 'string' && dotPosition.includes('right'))) {
             // For anti-saccade, target is opposite to the stimulus
-            targetX = isAnti ? 0.1 : 0.9;
+            targetX = isAnti ? 0.2 : 0.8;
             targetY = 0.5;
         }
 

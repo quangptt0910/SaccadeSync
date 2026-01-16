@@ -8,7 +8,7 @@ export let faceLandmarker = null;
 export async function initFaceLandmarker() {
 
     const resolver = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm" // CHANGED to @latest
     );
 
     faceLandmarker = await FaceLandmarker.createFromOptions(resolver, {

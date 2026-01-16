@@ -2,6 +2,7 @@
 import { calculateAccuracy } from "./accuracyAdjust";
 import { VelocityConfig } from "./velocityConfig";
 import { calculateAdaptiveThreshold } from "./detectSaccade";
+import {selectCalibrationMetrics} from "../../../store/calibrationSlice";
 
 /**
  * Analyzes saccade data for a single trial
@@ -127,7 +128,7 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         dotAppearanceTime,
         saccadeInfo,
         {
-            calibrationAccuracy: 0.91,
+            calibrationAccuracy: selectCalibrationMetrics?.accuracy?.left || 0.91, //fallback value
             trackerFPS: 30,             // webcam frame rate
             roiRadius: null,
             fixationDuration: 300,

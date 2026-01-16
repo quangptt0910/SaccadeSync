@@ -1,3 +1,11 @@
+// GameTest\utils\accuracyAdjust.js
+
+import {selectCalibrationMetrics} from "../../../store/calibrationSlice";
+
+/**
+ * Calculate adaptive ROI based on calibration accuracy and tracker FPS
+ */
+
 const calculateAdaptiveROI = (calibrationAccuracy, trackerFPS) => {
     // Base ROI for perfect calibration: 3° (0.1 screen width)
     const baseROI = 0.10;
@@ -65,7 +73,7 @@ export const calculateAccuracy = (
     options = {}
 ) => {
     const {
-        calibrationAccuracy = 0.91,    // MediaPipe hardcode accuracy MediaPipe accuracy is 1-3° in ideal conditions
+        calibrationAccuracy = selectCalibrationMetrics?.accuracy?.left || 0.91,    // MediaPipe hardcode accuracy MediaPipe accuracy is 1-3° in ideal conditions
         trackerFPS = 30,                // Webcam frame rate
         roiRadius = null,               // Auto-calculate if null
         fixationDuration = 300,         // Keep standard 300ms

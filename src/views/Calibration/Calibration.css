@@ -102,7 +102,7 @@
 .video-box {
     position: relative;
     width: 100%;
-    max-width: 640px;
+    /*max-width: 640px;*/
     aspect-ratio: 16 / 9;
     background: #b8d4dc;
     border-radius: 8px;
