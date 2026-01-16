@@ -1,5 +1,14 @@
+/**
+ * Global object to store references to DOM elements used throughout the calibration process.
+ * Populated by initDomRefs().
+ * @type {Object}
+ */
 export const refs = {};
 
+/**
+ * Selects and assigns all necessary DOM elements to the global 'refs' object.
+ * This should be called once when the component mounts.
+ */
 export function initDomRefs() {
     refs.video = document.getElementById("calibration-video");
     refs.canvas = document.getElementById("calibration-canvas");
