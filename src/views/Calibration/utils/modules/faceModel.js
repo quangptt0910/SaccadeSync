@@ -28,5 +28,10 @@ export async function initFaceLandmarker() {
         },
         runningMode: "VIDEO",
         numFaces: 1,
+        minFaceDetectionConfidence: 0.5,
+        minFacePresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+        outputFaceBlendshapes: false,
+        outputFacialTransformationMatrixes: false
     });
 }
