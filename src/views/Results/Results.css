@@ -282,3 +282,13 @@
   color: #999;
   margin-top: 4px;
 }
+
+.disclaimer-text a {
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.disclaimer-text a:hover {
+  color: #555;
+}

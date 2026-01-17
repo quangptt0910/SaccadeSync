@@ -350,7 +350,22 @@ const Results = () => {
                         </ul>
                     )}
                     <p className="disclaimer-text">
-                      * Comparison based on research thresholds (Munoz et al., 2003; Karatekin, 2007). This is not a medical diagnosis.
+                      * Comparison based on research thresholds from{' '}
+                      <a
+                          href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2963044/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                      >
+                        Karatekin et al. (2010)
+                      </a>{' '}and{' '}
+                      <a
+                          href="https://www.mdpi.com/2076-3425/10/12/1016"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                      >
+                        Lee et al. (2020)
+                      </a>.
+                      Values represent mean metrics observed in clinical studies. This is not a medical diagnosis.
                     </p>
                   </div>
                 </div>
