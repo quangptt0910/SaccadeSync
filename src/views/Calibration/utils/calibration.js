@@ -3,8 +3,11 @@ import { initFaceLandmarker } from "./modules/faceModel.js";
 import { startDistanceCheck, stopDistanceCheck } from "./modules/video.js";
 import { runDotCalibration } from "./modules/dotCalibration.js";
 
-
-
+/**
+ * Flag to track if the calibration process is currently running.
+ * Prevents multiple calibration sessions from starting simultaneously.
+ * @type {boolean}
+ */
 let calibrationRunning = false;
 
 /**

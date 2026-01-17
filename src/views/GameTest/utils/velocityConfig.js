@@ -29,7 +29,7 @@ export const VelocityConfig = {
         // Adaptive threshold parameters
         ADAPTIVE: {
             ENABLED: true,
-            FIXATION_SD_MULTIPLIER: 3, // Mean + 3*SD
+            FIXATION_SD_MULTIPLIER: 2.5, // Mean + 2.5*SD
             MIN_FIXATION_SAMPLES: 20,  // Minimum samples needed for adaptive calculation
             MAX_FIXATION_VELOCITY: 100, // Filter out spurious movements
         },
@@ -105,7 +105,7 @@ export const calculatePerTrialThreshold = (fixationVelocities) => {
     const variance = cleanFixationVelocities.reduce((sum, v) => sum + (v - mean) ** 2, 0) / cleanFixationVelocities.length;
     const sd = Math.sqrt(variance);
 
-    // Adaptive threshold: Mean + 3*SD (Engbert & Kliegl, 2003)
+    // Adaptive threshold: Mean + 2.5/3*SD (Engbert & Kliegl, 2003)
     const adaptiveThreshold = mean + (ADAPTIVE.FIXATION_SD_MULTIPLIER * sd);
 
     // Safety bounds: never go below 25°/s or above 100°/s

@@ -93,7 +93,7 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         } else if (latency > latencyConfig.MAX_MS) {
             latencyClassification = 'delayed';  // Attention lapse
         } else {
-            latencyClassification = 'invalid';  // Too fast (< 90ms)
+            latencyClassification = 'invalid';  // Too fast (< 30ms)
         }
 
         console.log(`Latency: ${latency}ms [${latencyClassification}]`);
@@ -128,7 +128,7 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
         dotAppearanceTime,
         saccadeInfo,
         {
-            calibrationAccuracy: selectCalibrationMetrics?.accuracy?.left || 0.91, //fallback value
+            calibrationAccuracy: selectCalibrationMetrics?.accuracy?.left || 0.90, //fallback value
             trackerFPS: 30,             // webcam frame rate
             roiRadius: null,
             fixationDuration: 300,
@@ -215,7 +215,7 @@ export const aggregateTrialStatistics = (trialsData, trialType = 'unknown') => {
     const peakVelocities = validTrials.map(t => t.peakVelocity);
     const accuracies = validTrials.map(t => t.accuracy);
     const durations = validTrials.map(t => t.duration).filter(d => d !== null);
-    const gain = validTrials.map(t => t.saccadicGain).filter(g => g !== null);
+    const gains = validTrials.map(t => t.saccadicGain).filter(g => g !== null);
 
     const mean = (arr) => arr.reduce((sum, val) => sum + val, 0) / arr.length;
     const std = (arr) => {
