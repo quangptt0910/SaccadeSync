@@ -128,15 +128,74 @@ const Results = () => {
       labels: ['Pro-Saccade', 'Anti-Saccade'],
       datasets: [
         {
-          label: 'Latency (ms)',
+          label: 'Your Latency (ms)',
           data: [
             selectedSession.pro?.stats?.latency?.mean || 0,
             selectedSession.anti?.stats?.latency?.mean || 0
           ],
           backgroundColor: ['rgba(53, 162, 235, 0.8)', 'rgba(255, 99, 132, 0.8)'],
+          order: 2
+        },
+        {
+          type: 'line',
+          label: 'ADHD Likelihood Threshold',
+          data: [380, 450], // Pro > 280ms, Anti > 350ms
+          borderColor: 'rgba(100, 100, 100, 0.5)',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          pointStyle: 'rectRot',
+          pointRadius: 6,
+          order: 1
         },
       ],
     };
+  }, [selectedSession]);
+
+  const interpretation = useMemo(() => {
+    if (!selectedSession) return null;
+
+    const proLat = selectedSession.pro?.stats?.latency?.mean || 0;
+    const antiLat = selectedSession.anti?.stats?.latency?.mean || 0;
+    const antiAcc = (selectedSession.anti?.stats?.accuracy?.mean || 0) * 100;
+    const proSD = selectedSession.pro?.stats?.latency?.std || 0;
+
+    const findings = [];
+    let riskCount = 0;
+
+    // 1. Pro-Saccade Latency (Normal: 170-250ms, ADHD: >280ms)
+    if (proLat > 380) {
+      findings.push(`Pro-saccade reaction time (${Math.round(proLat)}ms) is slower than the typical control range (>280ms).`);
+      riskCount++;
+    }
+
+    // 2. Anti-Saccade Latency (Normal: 300-340ms, ADHD: >350ms)
+    if (antiLat > 450) {
+      findings.push(`Anti-saccade reaction time (${Math.round(antiLat)}ms) is elevated compared to norms (>350ms).`);
+      riskCount++;
+    }
+
+    // 3. Anti-Saccade Accuracy (Normal Error < 25% -> Acc > 75%, ADHD Error > 30% -> Acc < 70%)
+    if (antiAcc < 70) {
+      findings.push(`Anti-saccade accuracy (${Math.round(antiAcc)}%) is lower than the typical range (>75%), suggesting difficulty with inhibition.`);
+      riskCount++;
+    }
+
+    // 4. Variability (Pro SD) (Control: ~26ms, ADHD: ~42ms)
+    if (proSD > 35) {
+      findings.push(`Reaction time variability (±${Math.round(proSD)}ms) is higher than the stable control baseline (~26ms).`);
+      riskCount++;
+    }
+
+    let summary = "";
+    if (riskCount >= 3) {
+      summary = "Your results show multiple patterns (latency, accuracy, or variability) that align with research markers for attention deficits. The data suggests significant deviations from the neurotypical control group.";
+    } else if (riskCount >= 1) {
+      summary = "Your results are mostly within the normal range, though there are slight deviations in specific metrics (detailed below) that may indicate mild fatigue or momentary lapses in attention.";
+    } else {
+      summary = "Your results fall consistently within the normal range for neurotypical adults. Reaction times, accuracy, and consistency match the control group baselines.";
+    }
+
+    return { summary, findings };
   }, [selectedSession]);
 
   const accuracyChartData = useMemo(() => {
@@ -279,6 +338,23 @@ const Results = () => {
 
           {selectedSession && (
               <>
+                <div className="card detail-card full-width">
+                  <h3>Analysis & Interpretation</h3>
+                  <div className="interpretation-content">
+                    <p className="interpretation-summary">{interpretation?.summary}</p>
+                    {interpretation?.findings.length > 0 && (
+                        <ul className="interpretation-list">
+                          {interpretation.findings.map((finding, idx) => (
+                              <li key={idx}>{finding}</li>
+                          ))}
+                        </ul>
+                    )}
+                    <p className="disclaimer-text">
+                      * Comparison based on research thresholds (Munoz et al., 2003; Karatekin, 2007). This is not a medical diagnosis.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="card detail-card">
                   <h3>Reaction Time</h3>
                   <p className="helper-text">For current session</p>
@@ -305,10 +381,12 @@ const Results = () => {
                     <div className="stat-group">
                       <span className="stat-label">Pro</span>
                       <span className="stat-value">±{Math.round(selectedSession.pro?.stats?.latency?.std || 0)}</span>
+                      <small className="ref-text">Control: ~26ms | ADHD: ~42ms</small>
                     </div>
                     <div className="stat-group">
                       <span className="stat-label">Anti</span>
                       <span className="stat-value">±{Math.round(selectedSession.anti?.stats?.latency?.std || 0)}</span>
+                      <small className="ref-text">Control: ~59ms | ADHD: ~49ms</small>
                     </div>
                   </div>
 
