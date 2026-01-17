@@ -15,10 +15,10 @@ function App() {
         <Route index element={<Home />} />
         <Route path="login" element={<Login />} />
         <Route path="results" element={<Results />} />
-        <Route path="gameTest" element={<GameTest />} />
         <Route path="instructions" element={<Instructions />} />
         <Route path="calibration" element={<Index />} />
       </Route>
+      <Route path="gameTest" element={<GameTest />} />
     </Routes>
   );
 }

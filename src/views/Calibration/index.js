@@ -9,6 +9,13 @@ import { selectUser } from "../../store/authSlice";
 import Button from "../../components/Button";
 import "./Calibration.css";
 
+/**
+ * Calibration Component.
+ *
+ * This is the main view for the eye-tracking calibration process.
+ * It manages the UI states (idle, success, failed), initializes the webcam and MediaPipe models via helper utilities,
+ * verifies calibration accuracy against a threshold, and persists successful models to Firebase and Redux.
+ */
 export default function Calibration() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -47,9 +54,9 @@ export default function Calibration() {
 
             // Check Accuracy Threshold
             // Note: data.metrics.details contains the raw accuracy numbers (0.0 - 1.0)
-            const leftAcc = data.metrics?.details?.left || 0;
-            const rightAcc = data.metrics?.details?.right || 0;
-            const threshold = 0.85;
+            const leftAcc = data.metrics?.accuracy?.left || 0;
+            const rightAcc = data.metrics?.accuracy?.right || 0;
+            const threshold = 0.849;
 
             if (leftAcc > threshold || rightAcc > threshold) {
                 // 1. Save to Redux Store (Global State)
@@ -80,30 +87,50 @@ export default function Calibration() {
         <div className="calibration-page">
             <div className="calibration-container">
 
-                <section>
-                    <h1 className="cal-section-title">Gaze Calibration</h1>
-                    <p className="cal-intro-text">
-                        Before starting the test, we need to calibrate the system to your gaze.
-                        This short process ensures accurate and personalized measurements for the experiments.
-                    </p>
+                <section className="cal-header-grid">
+                    <div className="cal-header-content">
+                        <h1 className="cal-section-title">Gaze Calibration</h1>
+                        <p className="cal-intro-text">
+                            Before starting the test, we need to calibrate the system to your gaze.
+                            This short process ensures accurate and personalized measurements for the experiments.
+                        </p>
+                    </div>
+                    <div className="cal-header-image">
+                        <img
+                            src="/assets/calibration-eye.jpg"
+                            alt="Gaze Calibration"
+                        />
+                    </div>
                 </section>
 
                 <hr className="cal-divider" />
 
-                <section>
-                    <h2 className="cal-section-title">How it works</h2>
-                    <div className="cal-instruction-text">
-                        <ul className="cal-steps-list">
-                            <li>
-                                <strong>1. Distance Check:</strong> We verify you are seated at the optimal distance (approx. 0.5 meters).
-                            </li>
-                            <li>
-                                <strong>2. Follow the Dot:</strong> You will follow a red dot on the screen while keeping your head still.
-                            </li>
-                            <li>
-                                <strong>3. Personalization:</strong> The system builds a custom model for your eyes.
-                            </li>
-                        </ul>
+                <section className="cal-how-it-works-grid">
+                    <div>
+                        <h2 className="cal-section-title">How it works</h2>
+                        <div className="cal-instruction-text">
+                            <ul className="cal-steps-list">
+                                <li>
+                                    <strong>1. Distance Check:</strong> We verify you are seated at the optimal distance (approx. 0.5 meters).
+                                </li>
+                                <li>
+                                    <strong>2. Follow the Dot:</strong> You will follow a red dot on the screen while keeping your head still.
+                                </li>
+                                <li>
+                                    <strong>3. Personalization:</strong> The system builds a custom model for your eyes.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="cal-illustration">
+                        <div className="demo-screen-container">
+                            <div className="demo-screen">
+                                <div className="demo-dot"></div>
+                                <div className="demo-message">Demo View</div>
+                            </div>
+                            <p className="demo-caption">The dot will move to 9 points.</p>
+                        </div>
                     </div>
                 </section>
 
@@ -142,6 +169,7 @@ export default function Calibration() {
                                     <button
                                         id="run-calibration-btn-overlay"
                                         className="btn btn-primary"
+                                        style={{ display: 'none' }}
                                     >
                                         Run Calibration
                                     </button>
@@ -206,6 +234,26 @@ export default function Calibration() {
                         <h3>Distance Failure</h3>
                         <p>Please adjust your distance.</p>
                     </div>
+                </div>
+            </div>
+
+            <div id="camera-permission-modal" style={{display: 'none'}}>
+                <div className="permission-panel">
+                    <div className="icon-warning">!</div>
+                    <h3>Camera Access Required</h3>
+                    <p>
+                        The eye-tracking experiments require camera access to function.
+                        We cannot proceed with the tests or calibration without it.
+                    </p>
+                    <p className="sub-text">
+                        Please enable camera permissions in your browser settings (usually in the URL bar) and reload the page.
+                    </p>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={() => window.location.reload()}
+                    >
+                        Reload Page
+                    </button>
                 </div>
             </div>
         </div>

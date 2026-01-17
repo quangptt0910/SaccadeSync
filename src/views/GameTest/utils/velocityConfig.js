@@ -1,4 +1,4 @@
-// velocityConfig.js
+
 /**
  * Configuration constants for velocity calculations in eye-tracking
  * Based on ADHD research standards and visual science principles
@@ -7,8 +7,8 @@
 export const VelocityConfig = {
     // Screen and Visual Field Parameters
     SCREEN: {
-        WIDTH: window.screen.width || 1920,
-        HEIGHT: window.screen.height || 1080,
+        WIDTH: window.innerWidth || 1920,
+        HEIGHT: window.innerHeight || 1080,
         // Typical viewing distance: 60cm, screen width: ~50cm
         HORIZONTAL_FOV_DEGREES: 40, // Horizontal field of view
         VERTICAL_FOV_DEGREES: 30,   // Vertical field of view
@@ -19,17 +19,42 @@ export const VelocityConfig = {
         // Static threshold (fallback when adaptive isn't available)
         STATIC_THRESHOLD_DEG_PER_SEC: 30,
 
+        // Onset/Offset thresholds
+        ONSET_THRESHOLD_DEG_PER_SEC: 35,   // Movement start (slightly higher than I-VT)
+        OFFSET_THRESHOLD_DEG_PER_SEC: 25,  // Movement end (hysteresis)
+
+        // Peak velocity validation
+        MIN_PEAK_VELOCITY_DEG_PER_SEC: 40,
+
         // Adaptive threshold parameters
         ADAPTIVE: {
             ENABLED: true,
-            FIXATION_SD_MULTIPLIER: 3, // Mean + 3*SD
-            MIN_FIXATION_SAMPLES: 10,  // Minimum samples needed for adaptive calculation
+            FIXATION_SD_MULTIPLIER: 2.5, // Mean + 2.5*SD
+            MIN_FIXATION_SAMPLES: 20,  // Minimum samples needed for adaptive calculation
+            MAX_FIXATION_VELOCITY: 100, // Filter out spurious movements
         },
 
         // Validity check: Maximum allowed difference between left/right eye velocities
         MAX_BINOCULAR_DISPARITY_DEG_PER_SEC: 100,
     },
 
+    LATENCY_VALIDATION: {
+        PRO_SACCADE: {
+            MIN_MS: 90,  // Not 80ms - too aggressive for webcam
+            MAX_MS: 600,  // Upper limit for normal reaction
+            EXPRESS_THRESHOLD_MS: 120,  // Flag as express if <120ms
+        },
+        ANTI_SACCADE: {
+            MIN_MS: 90,  // Inhibition takes longer
+            MAX_MS: 800,  // Upper limit for antisaccades
+            EXPRESS_THRESHOLD_MS: 180,
+        }
+    },
+
+    // AMPLITUDE VALIDATION
+    MIN_AMPLITUDE_DEGREES: 2.0,
+    MIN_DURATION_MS: 30,  // 1 frame at 30fps (not 20-25ms from desktop)
+    MAX_DURATION_MS: 150, // Typical max for 40° saccade
     // Time window validation
     TIME: {
         MIN_DELTA_MS: 1,      // Minimum time between frames
@@ -58,12 +83,35 @@ export const getPixelsPerDegree = () => ({
 });
 
 /**
- * Converts pixel distance to visual degrees
- * @param {number} pixelDistance - Distance in pixels
- * @param {string} axis - 'horizontal' or 'vertical'
- * @returns {number} Distance in degrees
+ * Calculate adaptive threshold from fixation period velocities
+ * This should be called DURING each trial's center fixation
  */
-export const pixelsToDegrees = (pixelDistance, axis = 'horizontal') => {
-    const ppd = getPixelsPerDegree();
-    return pixelDistance / ppd[axis];
+export const calculatePerTrialThreshold = (fixationVelocities) => {
+    const { ADAPTIVE, STATIC_THRESHOLD_DEG_PER_SEC } = VelocityConfig.SACCADE;
+
+    // Filter out spurious movements during "fixation"
+    const cleanFixationVelocities = fixationVelocities.filter(v =>
+        v < ADAPTIVE.MAX_FIXATION_VELOCITY && v >= 0
+    );
+
+    // Need minimum samples for robust statistics
+    if (cleanFixationVelocities.length < ADAPTIVE.MIN_FIXATION_SAMPLES) {
+        console.warn(`Insufficient fixation samples (${cleanFixationVelocities.length}/${ADAPTIVE.MIN_FIXATION_SAMPLES}). Using static threshold.`);
+        return STATIC_THRESHOLD_DEG_PER_SEC;
+    }
+
+    // Calculate mean and standard deviation
+    const mean = cleanFixationVelocities.reduce((sum, v) => sum + v, 0) / cleanFixationVelocities.length;
+    const variance = cleanFixationVelocities.reduce((sum, v) => sum + (v - mean) ** 2, 0) / cleanFixationVelocities.length;
+    const sd = Math.sqrt(variance);
+
+    // Adaptive threshold: Mean + 2.5/3*SD (Engbert & Kliegl, 2003)
+    const adaptiveThreshold = mean + (ADAPTIVE.FIXATION_SD_MULTIPLIER * sd);
+
+    // Safety bounds: never go below 25°/s or above 100°/s
+    const boundedThreshold = Math.max(25, Math.min(100, adaptiveThreshold));
+
+    console.log(`Per-trial threshold: ${boundedThreshold.toFixed(2)}°/s (mean=${mean.toFixed(2)}, sd=${sd.toFixed(2)}, n=${cleanFixationVelocities.length})`);
+
+    return boundedThreshold;
 };

@@ -1,6 +1,9 @@
 // saccadeData.js - Enhanced post-processing analysis for ADHD research
-import { calculateAccuracy } from "./accuracy";
+import { calculateAccuracy } from "./accuracyAdjust";
 import { VelocityConfig } from "./velocityConfig";
+import { calculateAdaptiveThreshold } from "./detectSaccade";
+import {selectCalibrationMetrics} from "../../../store/calibrationSlice";
+
 /**
  * Analyzes saccade data for a single trial
  * Uses pre-calculated velocities from real-time detection
@@ -12,13 +15,23 @@ import { VelocityConfig } from "./velocityConfig";
  */
 export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {}) => {
     const {
-        requireValidData = true,      // Skip invalid frames
-        minLatency = 50,               // Minimum physiologically plausible latency (ms)
-        maxLatency = 600,              // Maximum expected latency (ms)
-        postSaccadeWindow = 200        // Window after saccade for accuracy (ms)
+        requireValidData = true,
+        minLatency = 50,
+        maxLatency = 600,
+        postSaccadeWindow = 300,
+        adaptiveThreshold = 30,
+        trialType = 'pro'
     } = options;
 
-    // Metrics to calculate
+
+
+    // Get task-specific latency bounds
+    const latencyConfig = trialType === 'pro'
+        ? VelocityConfig.LATENCY_VALIDATION.PRO_SACCADE
+        : VelocityConfig.LATENCY_VALIDATION.ANTI_SACCADE;
+    console.log(`Trial Analysis (${trialType}): Threshold=${adaptiveThreshold.toFixed(2)}°/s, Latency Window=[${latencyConfig.MIN_MS}, ${latencyConfig.MAX_MS}]ms`);
+
+    // Saccade Detection (existing logic)
     let peakVelocity = 0;
     let saccadeOnsetTime = null;
     let saccadeOffsetTime = null;
@@ -26,18 +39,13 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
     let validFrameCount = 0;
     let invalidFrameCount = 0;
     let binocularDisparityCount = 0;
-
-    // Track saccade state
     let inSaccade = false;
 
-    // Process frames after dot appearance
     for (let i = 0; i < recordingData.length; i++) {
         const currentFrame = recordingData[i];
 
-        // 1. TIMING FILTER: Only analyze data after dot appeared
         if (currentFrame.timestamp < dotAppearanceTime) continue;
 
-        // 2. VALIDITY FILTER: Check if frame is valid
         if (requireValidData && currentFrame.isValid === false) {
             invalidFrameCount++;
             if (currentFrame.invalidReason === 'excessive_disparity') {
@@ -48,87 +56,125 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
 
         validFrameCount++;
 
-        // 3. USE PRE-CALCULATED SACCADE DETECTION
-        // The velocity and isSaccade were already calculated in real-time
-        if (currentFrame.isSaccade && currentFrame.velocity) {
+        const velocity = currentFrame.velocity || 0;
+        const isSaccade = velocity > adaptiveThreshold;
+
+        if (isSaccade) {
             saccadeDetected = true;
 
-            // Track saccade onset (first frame above threshold)
             if (!inSaccade && saccadeOnsetTime === null) {
                 saccadeOnsetTime = currentFrame.timestamp;
                 inSaccade = true;
             }
 
-            // Track peak velocity during entire saccade
-            if (currentFrame.velocity > peakVelocity) {
-                peakVelocity = currentFrame.velocity;
+            if (velocity > peakVelocity) {
+                peakVelocity = velocity;
             }
 
-            // Update offset time (last frame of saccade)
             saccadeOffsetTime = currentFrame.timestamp;
         } else {
-            // Exited saccade
             if (inSaccade) {
                 inSaccade = false;
             }
         }
     }
 
-    // 4. CALCULATE LATENCY
+    //  Latency Calculation & Validation
     let latency = null;
-    let isPhysiologicallyPlausible = false;
+    let latencyClassification = 'none';
 
     if (saccadeOnsetTime !== null) {
         latency = saccadeOnsetTime - dotAppearanceTime;
 
-        // Validate latency is within physiological bounds
+        if (latency < latencyConfig.EXPRESS_THRESHOLD_MS) {
+            latencyClassification = 'express';  // Very fast, possibly anticipatory
+        } else if (latency >= latencyConfig.MIN_MS && latency <= latencyConfig.MAX_MS) {
+            latencyClassification = 'normal';   // Valid reaction
+        } else if (latency > latencyConfig.MAX_MS) {
+            latencyClassification = 'delayed';  // Attention lapse
+        } else {
+            latencyClassification = 'invalid';  // Too fast (< 30ms)
+        }
+
+        console.log(`Latency: ${latency}ms [${latencyClassification}]`);
+    }
+
+    let isPhysiologicallyPlausible = false;
+
+    if (saccadeOnsetTime !== null) {
+        latency = saccadeOnsetTime - dotAppearanceTime;
         isPhysiologicallyPlausible = latency >= minLatency && latency <= maxLatency;
 
         if (!isPhysiologicallyPlausible) {
-            console.warn(`Latency ${latency}ms outside physiological range [${minLatency}, ${maxLatency}]`);
+            console.warn(`⚠Latency ${latency}ms outside range [${minLatency}, ${maxLatency}]`);
         }
     }
 
-    // 5. CALCULATE SACCADE DURATION
+    //  Duration Calculation
     let duration = null;
     if (saccadeOnsetTime !== null && saccadeOffsetTime !== null) {
         duration = saccadeOffsetTime - saccadeOnsetTime;
     }
 
-    // 6. CALCULATE ACCURACY
-    // Use post-saccade fixation period for accuracy measurement
-    const accuracyStartTime = saccadeOffsetTime || dotAppearanceTime + 200; // Default 200ms after dot
-    const accuracyResults = calculateAccuracy(recordingData, accuracyStartTime);
+    //  NEW RESEARCH-GRADE ACCURACY CALCULATION
+    const saccadeInfo = {
+        saccadeOnsetTime,
+        saccadeOffsetTime,
+        duration
+    };
 
-    // 7. DATA QUALITY METRICS
+    const accuracyResults = calculateAccuracy(
+        recordingData,
+        dotAppearanceTime,
+        saccadeInfo,
+        {
+            calibrationAccuracy: selectCalibrationMetrics?.accuracy?.left || 0.90, //fallback value
+            trackerFPS: 30,             // webcam frame rate
+            roiRadius: null,
+            fixationDuration: 300,
+            saccadicGainWindow: 100,
+            minLatency: minLatency,
+            fixationStabilityThreshold: 0.70
+        }
+    );
+
+    //  Data Quality
     const totalFramesAnalyzed = validFrameCount + invalidFrameCount;
     const dataQuality = totalFramesAnalyzed > 0
         ? validFrameCount / totalFramesAnalyzed
         : 0;
 
-    // 8. COMPILE RESULTS
+    // STEP 7: Compile Results
     return {
-        // Primary Saccade Metrics (for ADHD research)
+        // Primary Saccade Metrics
         isSaccade: saccadeDetected,
-        peakVelocity: peakVelocity,                    // deg/s - Key ADHD biomarker
-        latency: latency,                              // ms - Key ADHD biomarker
-        duration: duration,                            // ms
+        peakVelocity: peakVelocity,
+        latency: latency,
+        latencyClassification: latencyClassification,
+        duration: duration,
         isPhysiologicallyPlausible: isPhysiologicallyPlausible,
+        usedThreshold: adaptiveThreshold,
 
-        // Accuracy Metrics
-        accuracy: accuracyResults.accuracyScore,       // 0.0 - 1.0
-        averageError: accuracyResults.averageError,    // Normalized distance
+        // ENHANCED Accuracy Metrics (Research-Grade)
+        accuracy: accuracyResults.accuracyScore,
+        accuracyBreakdown: accuracyResults.componentScores,
+        saccadicGain: accuracyResults.saccadicGain,
+        sustainedFixation: accuracyResults.sustainedFixation,
+        fixationStability: accuracyResults.fixationStability,
 
-        // Data Quality Metrics
+        // ADHD Biomarkers
+        adhdMarkers: accuracyResults.adhdMarkers,
+
+        // Data Quality
         quality: {
             validFrames: validFrameCount,
             invalidFrames: invalidFrameCount,
             totalFrames: totalFramesAnalyzed,
-            dataQuality: dataQuality,                  // 0.0 - 1.0
+            dataQuality: dataQuality,
             binocularDisparityEvents: binocularDisparityCount
         },
 
-        // Timing Breakdown (for debugging)
+        // Timing
         timing: {
             dotAppearance: dotAppearanceTime,
             saccadeOnset: saccadeOnsetTime,
@@ -169,6 +215,7 @@ export const aggregateTrialStatistics = (trialsData, trialType = 'unknown') => {
     const peakVelocities = validTrials.map(t => t.peakVelocity);
     const accuracies = validTrials.map(t => t.accuracy);
     const durations = validTrials.map(t => t.duration).filter(d => d !== null);
+    const gains = validTrials.map(t => t.saccadicGain).filter(g => g !== null);
 
     const mean = (arr) => arr.reduce((sum, val) => sum + val, 0) / arr.length;
     const std = (arr) => {
@@ -214,6 +261,13 @@ export const aggregateTrialStatistics = (trialsData, trialType = 'unknown') => {
             median: median(accuracies)
         },
 
+        gain: {
+            mean: mean(gains),
+            std: std(gains),
+            median: median(gains),
+            // Count how many were hypometric (undershoots < 0.75)
+            hypometricRate: gains.filter(g => g < 0.75).length / gains.length
+        },
         // Duration Statistics (ms)
         duration: durations.length > 0 ? {
             mean: mean(durations),
@@ -238,50 +292,81 @@ export const aggregateTrialStatistics = (trialsData, trialType = 'unknown') => {
  * @returns {Object} Comparison metrics
  */
 export const compareProVsAnti = (proStats, antiStats) => {
-    if (!proStats || !antiStats) {
-        return { error: 'Both pro and anti statistics required' };
+    // Safety check
+    if (!proStats || !antiStats || proStats.validTrialCount === 0 || antiStats.validTrialCount === 0) {
+        console.warn("⚠️ Cannot compare phases: Insufficient valid trials.");
+        return {
+            latencyDifference: 0,
+            errorRateComparison: 0,
+            impulsivityIndex: 0,
+            overallDiagnosis: "Inconclusive (Low Data Quality)"
+        };
     }
     // ADHD Research Indicators:
     // 1. Anti-saccade latency typically 50-100ms longer than pro-saccade
     // 2. Anti-saccade peak velocity may be reduced in ADHD
     // 3. Anti-saccade accuracy typically lower (requires inhibition)
 
-    const latencyDifference = antiStats.latency.mean - proStats.latency.mean;
-    const velocityRatio = antiStats.peakVelocity.mean / proStats.peakVelocity.mean;
-    const accuracyDifference = proStats.accuracy.mean - antiStats.accuracy.mean;
+    try {
+        const proLatency = proStats.latency?.mean || 0;
+        const antiLatency = antiStats.latency?.mean || 0;
+        const latencyDifference = antiLatency - proLatency;
+        const velocityRatio = antiStats.peakVelocity.mean / proStats.peakVelocity.mean;
+        const accuracyDifference = proStats.accuracy.mean - antiStats.accuracy.mean;
 
-    return {
-        latency: {
-            pro: proStats.latency.mean,
-            anti: antiStats.latency.mean,
-            difference: latencyDifference,
-            interpretation: latencyDifference > 100
-                ? 'Normal (anti > pro by >100ms)'
-                : 'Reduced anti-saccade cost'
-        },
+        const proGain = proStats.gain?.mean || 0;
+        const antiGain = antiStats.gain?.mean || 0;
+        const gainDifference = proGain - antiGain;
 
-        peakVelocity: {
-            pro: proStats.peakVelocity.mean,
-            anti: antiStats.peakVelocity.mean,
-            ratio: velocityRatio,
-            interpretation: velocityRatio < 0.85
-                ? 'Reduced anti-saccade velocity'
-                : 'Normal velocity'
-        },
+        return {
+            latency: {
+                pro: proStats.latency.mean,
+                anti: antiStats.latency.mean,
+                difference: latencyDifference,
+                interpretation: latencyDifference > 100 // magic number
+                    ? 'Normal (anti > pro by >100ms)'
+                    : 'Reduced anti-saccade cost'
+            },
 
-        accuracy: {
-            pro: proStats.accuracy.mean,
-            anti: antiStats.accuracy.mean,
-            difference: accuracyDifference,
-            interpretation: accuracyDifference > 0.15
-                ? 'Significant anti-saccade accuracy reduction'
-                : 'Normal accuracy pattern'
-        },
+            peakVelocity: {
+                pro: proStats.peakVelocity.mean,
+                anti: antiStats.peakVelocity.mean,
+                ratio: velocityRatio,
+                interpretation: velocityRatio < 0.85 // magic number
+                    ? 'Reduced anti-saccade velocity'
+                    : 'Normal velocity'
+            },
 
-        dataQuality: {
-            pro: proStats.averageDataQuality,
-            anti: antiStats.averageDataQuality,
-            overall: (proStats.averageDataQuality + antiStats.averageDataQuality) / 2
-        }
-    };
+            accuracy: {
+                pro: proStats.accuracy.mean,
+                anti: antiStats.accuracy.mean,
+                difference: accuracyDifference,
+                interpretation: accuracyDifference > 0.15 // magic number
+                    ? 'Significant anti-saccade accuracy reduction'
+                    : 'Normal accuracy pattern'
+            },
+            gain: {
+                pro: proGain,
+                anti: antiGain,
+                difference: gainDifference,
+                interpretation: proGain < 0.75 // a soften magic number from the literature
+                    ? 'Significant Hypometria (Undershoot)'
+                    : 'Normal Gain'
+            },
+            dataQuality: {
+                pro: proStats.averageDataQuality,
+                anti: antiStats.averageDataQuality,
+                overall: (proStats.averageDataQuality + antiStats.averageDataQuality) / 2
+            }
+        };
+    } catch (error) {
+        console.error("Error comparing pro vs anti saccade stats:", error);
+        return {
+            latencyDifference: 0,
+            errorRateComparison: 0,
+            impulsivityIndex: 0,
+            overallDiagnosis: "Inconclusive (Error in Comparison)"
+        };
+    }
+
 };

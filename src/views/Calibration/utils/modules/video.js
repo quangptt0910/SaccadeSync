@@ -3,9 +3,15 @@ import { faceLandmarker } from "./faceModel.js";
 import { handleDistanceState } from "./distance.js";
 import { runningDot, abortDot, showFsWarning } from "./dotCalibration.js";
 
+/** @type {boolean} Flag indicating if the camera loop is currently active. */
 export let runningCamera = false;
 let lastTime = -1;
 
+/**
+ * The main animation loop for processing camera frames.
+ * Captures frames from the video element, runs the face landmarker, and checks distance.
+ * Also handles warning overlays during calibration if the face is lost.
+ */
 export function cameraLoop() {
     if (!runningCamera) return;
     requestAnimationFrame(cameraLoop);
@@ -31,6 +37,11 @@ export function cameraLoop() {
     if (runningDot && !ok && !abortDot) showFsWarning();
 }
 
+/**
+ * Requests camera permissions, initializes the video stream, and starts the processing loop.
+ * Also manages UI state to show video elements and hide static previews.
+ * @returns {Promise<void>}
+ */
 export async function startDistanceCheck() {
     if (runningCamera) return;
 
@@ -45,9 +56,18 @@ export async function startDistanceCheck() {
     refs.stopBtn.style.display = "inline-block";
     refs.distanceOverlay.style.display = "flex";
 
+    if (refs.runCalibBtnOverlay) {
+        refs.runCalibBtnOverlay.style.display = "none";
+    }
+
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
+            video: {
+                width: { ideal: 1280 },      // Request 1280
+                height: { ideal: 720 },       // Request 720
+                frameRate: { ideal: 60, min: 30 },
+                facingMode: "user"
+            },
             audio: false,
         });
 
@@ -57,9 +77,18 @@ export async function startDistanceCheck() {
     } catch (err) {
         console.error("Camera error:", err);
         stopDistanceCheck();
+
+        if (refs.permissionModal) {
+            refs.permissionModal.style.display = "flex";
+        } else {
+            alert("Camera access denied. Please enable camera permissions to continue.");
+        }
     }
 }
 
+/**
+ * Stops the camera stream, releases tracks, and resets the UI to the static preview state.
+ */
 export function stopDistanceCheck() {
     runningCamera = false;
 

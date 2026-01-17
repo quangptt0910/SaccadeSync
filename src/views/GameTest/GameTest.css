@@ -1,6 +1,6 @@
 .GameTest {
     background-color: black;
-    min-height: calc(100vh - 60px);
+    min-height: 100vh;
 }
 
 .dot {
@@ -20,11 +20,11 @@
 }
 
 .left-dot {
-    left: 10%;
+    left: 20%; /* CHANGE FROM 10% TO 20% */
 }
 
 .right-dot {
-    right: 10%;
+    right: 20%; /* CHANGE FROM 10% TO 20%  */
 }
 
 .trial-counter {

@@ -4,7 +4,7 @@ import { VelocityConfig, getPixelsPerDegree } from './velocityConfig';
  * Validates time delta between frames
  */
 const isValidTimeDelta = (timeDeltaSec) => {
-    return timeDeltaSec > 0 && timeDeltaSec <= VelocityConfig.TIME.MAX_DELTA_SEC;
+    return timeDeltaSec > 0 && timeDeltaSec <= VelocityConfig.TIME.MAX_DELTA_SEC * 2;
 };
 
 /**
@@ -63,29 +63,33 @@ const validateBinocularData = (currentPoint, prevPoint, timeDeltaSec) => {
         rightVelocity = rightDist.distanceDegrees / timeDeltaSec;
     }
 
-    // Validity check: Both eyes must be tracked
-    if (leftVelocity === null || rightVelocity === null) {
+    // Validity check: At least one eye must be tracked (Relaxed from requiring both)
+    if (leftVelocity === null && rightVelocity === null) {
         return {
             leftVelocity,
             rightVelocity,
             isValid: false,
-            reason: 'monocular_data'
+            reason: 'no_data'
         };
     }
 
-    // CRITICAL: Check binocular disparity
-    // If eyes disagree by more than threshold, data is unreliable
-    const disparity = Math.abs(leftVelocity - rightVelocity);
-    const maxDisparity = VelocityConfig.SACCADE.MAX_BINOCULAR_DISPARITY_DEG_PER_SEC;
+    // Check binocular disparity only if both eyes are available
+    let disparity = 0;
+    if (leftVelocity !== null && rightVelocity !== null) {
+        disparity = Math.abs(leftVelocity - rightVelocity);
+        const maxDisparity = VelocityConfig.SACCADE.MAX_BINOCULAR_DISPARITY_DEG_PER_SEC;
 
-    if (disparity > maxDisparity) {
-        return {
-            leftVelocity,
-            rightVelocity,
-            isValid: false,
-            reason: 'excessive_disparity',
-            disparity
-        };
+        if (disparity > maxDisparity) {
+            // We allow the data but mark it with a reason. 
+            // Returning isValid: true ensures we still get a velocity value (from the average).
+            return {
+                leftVelocity,
+                rightVelocity,
+                isValid: true, 
+                reason: 'excessive_disparity',
+                disparity
+            };
+        }
     }
 
     return {
@@ -191,12 +195,18 @@ export const detectSaccade = (currentPoint, prevPoint, options = {}) => {
     }
 
     // Check if we have calibrated data
-    if (!currentPoint.calibrated || !prevPoint.calibrated) {
+    if (!currentPoint.calibrated?.avg || !prevPoint.calibrated?.avg) {
         return {
             velocity: 0,
             isSaccade: false,
             isValid: false,
-            reason: 'no_calibration'
+            reason: 'no_calibration_data',
+            debug: {
+                currentHasCalibrated: !!currentPoint.calibrated,
+                currentHasAvg: !!currentPoint.calibrated?.avg,
+                prevHasCalibrated: !!prevPoint.calibrated,
+                prevHasAvg: !!prevPoint.calibrated?.avg
+            }
         };
     }
 
