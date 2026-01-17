@@ -9,6 +9,11 @@ const EYE_INDICES = {
     right: { inner: 362, outer: 263, iris: 473 }
 };
 
+/**
+ * Class responsible for tracking iris movements using MediaPipe Face Landmarker.
+ * It handles camera initialization, face landmark detection, iris position calculation,
+ * gaze prediction using a calibration model, and real-time saccade detection.
+ */
 class IrisFaceMeshTracker {
     constructor() {
         this.faceLandmarker = null;
@@ -41,6 +46,10 @@ class IrisFaceMeshTracker {
     /**
      * Calculates iris position relative to eye corners (Local Coordinates).
      * Returns {x, y} where x=0 is Inner Corner, x=1 is Outer Corner.
+     * 
+     * @param {Array} landmarks - Array of face landmarks.
+     * @param {string} eyeSide - 'left' or 'right'.
+     * @returns {Object|null} Normalized iris position {x, y} or null if landmarks are missing.
      */
     getRelativeIrisPos(landmarks, eyeSide) {
         const indices = EYE_INDICES[eyeSide];
@@ -80,6 +89,9 @@ class IrisFaceMeshTracker {
     //     return { x: point.x, y: point.y };
     // }
 
+    /**
+     * Initializes the MediaPipe FaceLandmarker and creates a hidden video element.
+     */
     async initialize() {
         // Create hidden video element for camera input
         this.videoElement = document.createElement('video');
@@ -111,12 +123,22 @@ class IrisFaceMeshTracker {
         console.log('FaceLandmarker initialized');
     }
 
+    /**
+     * Sets the calibration model used to map iris coordinates to screen coordinates.
+     * @param {Object} model - The calibration model containing coefficients for left and right eyes.
+     */
     setCalibrationModel(model) {
         this.calibrationModel = model;
         console.log("Calibration model set in tracker:", model);
     }
 
-    // Helper to apply quadratic model
+    /**
+     * Applies the quadratic calibration model to predict gaze coordinates.
+     * 
+     * @param {Object} iris - Normalized iris coordinates {x, y}.
+     * @param {string} eye - 'left' or 'right'.
+     * @returns {Object|null} Predicted screen coordinates {x, y} or null if model/coefficients are missing.
+     */
     predictGaze(iris, eye) {
         if (!this.calibrationModel || !this.calibrationModel[eye]) return null;
 
@@ -144,6 +166,10 @@ class IrisFaceMeshTracker {
         return { x: rawX, y: rawY };
     }
 
+    /**
+     * Starts the camera stream.
+     * @returns {Promise<void>} Resolves when the camera is ready.
+     */
     async startCamera() {
         try {
             this.videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
@@ -176,6 +202,10 @@ class IrisFaceMeshTracker {
         return Date.now() - this.startTime;
     }
 
+    /**
+     * Main loop for processing video frames.
+     * Detects landmarks, calculates iris positions, applies calibration, detects saccades, and stores data.
+     */
     processFrame() {
         if (!this.isTracking || !this.videoElement || !this.faceLandmarker) return;
 
@@ -289,6 +319,12 @@ class IrisFaceMeshTracker {
 
     }
 
+    /**
+     * Detects saccades in real-time by comparing the current frame with previous frames.
+     * Updates the current data point with velocity and saccade status.
+     * 
+     * @param {Object} currentPoint - The current tracking data point.
+     */
     performSaccadeDetection(currentPoint) {
         if (this.trackingData.length < 2) return;
 
@@ -314,6 +350,9 @@ class IrisFaceMeshTracker {
         }
     }
 
+    /**
+     * Starts the tracking process: initializes components, starts camera, and begins the processing loop.
+     */
     async startTracking() {
         if (!this.faceLandmarker) {
             await this.initialize();
@@ -331,6 +370,9 @@ class IrisFaceMeshTracker {
         console.log('Iris tracking started');
     }
 
+    /**
+     * Stops the tracking process, cancels the animation frame, and stops the camera stream.
+     */
     stopTracking() {
         this.isTracking = false;
 
@@ -348,7 +390,13 @@ class IrisFaceMeshTracker {
         console.log('Iris tracking stopped. Total data points:', this.trackingData.length);
     }
 
-    // Add trial context to current tracking data
+    /**
+     * Updates the current trial context (trial number, dot position, target coordinates).
+     * This context is attached to every subsequent data frame.
+     * 
+     * @param {number} trialNumber - The current trial number.
+     * @param {string} dotPosition - The position of the target dot (e.g., 'left', 'right', 'center').
+     */
     addTrialContext(trialNumber, dotPosition) {
         // Calculate target coordinates based on dotPosition
         let targetX = null;
@@ -388,7 +436,9 @@ class IrisFaceMeshTracker {
         }
     }
 
-    // Export data as CSV
+    /**
+     * Exports the recorded tracking data as a CSV file.
+     */
     exportCSV() {
         if (this.trackingData.length === 0) {
             console.warn('No tracking data to export');
@@ -438,6 +488,9 @@ class IrisFaceMeshTracker {
         return this.trackingData;
     }
 
+    /**
+     * Cleans up resources: stops tracking, closes the FaceLandmarker, and removes the video element.
+     */
     cleanup() {
         this.stopTracking();
 
