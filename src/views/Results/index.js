@@ -98,7 +98,8 @@ const Results = () => {
   };
 
   const timelineChartData = useMemo(() => {
-    const sortedHistory = [...historyData].reverse();
+    // get history from the last 14 sessions
+    const sortedHistory = historyData.slice(0, 14).reverse();
 
     return {
       labels: sortedHistory.map(s => s.date.toLocaleDateString(undefined, {month:'short', day:'numeric'})),
@@ -140,13 +141,25 @@ const Results = () => {
 
   const accuracyChartData = useMemo(() => {
     if (!selectedSession) return null;
-    const accuracy = (selectedSession.anti?.stats?.accuracy?.mean || 0) * 100;
+
+    const antiAccuracy = (selectedSession.anti?.stats?.accuracy?.mean || 0) * 100;
+    const proAccuracy = (selectedSession.pro?.stats?.accuracy?.mean || 0) * 100;
+
     return {
       labels: ['Correct', 'Incorrect'],
       datasets: [
+        // Inner Circle: Anti-Saccade (Green)
         {
-          data: [accuracy, 100 - accuracy],
-          backgroundColor: ['#4ade80', '#e5e7eb'], // Green vs Gray
+          label: 'Anti-Saccade',
+          data: [antiAccuracy, 100 - antiAccuracy],
+          backgroundColor: ['#4ade80', '#e5e7eb'], // Green & Gray
+          borderWidth: 0,
+        },
+        // Outer Circle: Pro-Saccade (Blue)
+        {
+          label: 'Pro-Saccade',
+          data: [proAccuracy, 100 - proAccuracy],
+          backgroundColor: ['#3b82f6', '#e5e7eb'], // Blue & Gray
           borderWidth: 0,
         },
       ],
@@ -208,6 +221,7 @@ const Results = () => {
   }
 
   return (
+
       <div className="results-page dashboard-layout">
 
         <header className="dashboard-header">
@@ -266,7 +280,8 @@ const Results = () => {
           {selectedSession && (
               <>
                 <div className="card detail-card">
-                  <h3>Reaction Speed</h3>
+                  <h3>Reaction Time</h3>
+                  <p className="helper-text">For current session</p>
                   <div className="chart-container small-chart">
                     <Bar
                         data={barChartData}
@@ -281,27 +296,9 @@ const Results = () => {
                   </div>
                 </div>
 
-                <div className="card detail-card">
-                  <h3>Inhibition Accuracy</h3>
-                  <div className="chart-container small-chart donut-container">
-                    <Doughnut
-                        data={accuracyChartData}
-                        options={{
-                          cutout: '70%',
-                          plugins: { legend: { display: false } }
-                        }}
-                    />
-                    <div className="donut-center-text">
-                      <strong>{Math.round((selectedSession.anti?.stats?.accuracy?.mean || 0) * 100)}%</strong>
-                    </div>
-                  </div>
-                  <div className="stat-footer">
-                    <small>Target: >80%</small>
-                  </div>
-                </div>
 
                 <div className="card detail-card stats-text-card">
-                  <h3>Consistency</h3>
+                  <h3>Consistency of Reaction Speed</h3>
                   <p className="helper-text">Standard Deviation (lower is better)</p>
 
                   <div className="stat-row-large">
@@ -317,6 +314,7 @@ const Results = () => {
 
                   <div className="quality-indicator">
                     <span>Data Quality:</span>
+                    <p className="helper-text">Amount of trials that are valid</p>
                     <div className="progress-bar">
                       <div
                           className="progress-fill"
@@ -325,6 +323,56 @@ const Results = () => {
                     </div>
                   </div>
                 </div>
+
+
+                <div className="card detail-card">
+                  <h3>Session Accuracy</h3>
+
+                  <div className="chart-container small-chart donut-container">
+                    <Doughnut
+                        data={accuracyChartData}
+                        options={{
+                          cutout: '60%',
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: true }
+                          }
+                        }}
+                    />
+                  </div>
+
+                  {/* New Custom Legend / Stats Section */}
+                  <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '15px' }}>
+
+                    {/* Anti-Saccade Stat (Green) */}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4ade80' }}>
+                        {Math.round((selectedSession?.anti?.stats?.accuracy?.mean || 0) * 100)}%
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '-4px' }}>
+                        <span style={{ display:'inline-block', width:'8px', height:'8px', backgroundColor:'#4ade80', borderRadius:'50%', marginRight:'5px'}}></span>
+                        Anti
+                      </div>
+                    </div>
+
+                    {/* Pro-Saccade Stat (Blue) */}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>
+                        {Math.round((selectedSession?.pro?.stats?.accuracy?.mean || 0) * 100)}%
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '-4px' }}>
+                        <span style={{ display:'inline-block', width:'8px', height:'8px', backgroundColor:'#3b82f6', borderRadius:'50%', marginRight:'5px'}}></span>
+                        Pro
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <div className="stat-footer" style={{ textAlign: 'center', marginTop: '15px' }}>
+                    <small>Target: >80%</small>
+                  </div>
+                </div>
+
 
                 <div className="card detail-card">
                   <h3>Peak Velocity</h3>
