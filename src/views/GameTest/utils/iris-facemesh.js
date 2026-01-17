@@ -2,12 +2,21 @@
 import {FaceLandmarker, FilesetResolver} from '@mediapipe/tasks-vision';
 import {detectSaccade} from './detectSaccade';
 
+const EYE_INDICES = {
+    // Subject's Left Eye (MediaPipe indices)
+    left: { inner: 33, outer: 133, iris: 468 },
+    // Subject's Right Eye (MediaPipe indices)
+    right: { inner: 362, outer: 263, iris: 473 }
+};
+
 class IrisFaceMeshTracker {
     constructor() {
         this.faceLandmarker = null;
         this.isTracking = false;
         this.trackingData = [];
         this.videoElement = null;
+        this.lastVideoTime = -1;
+
         this.startTime = null;
         this.animationId = null;
         this.previousFrame = null;
@@ -28,22 +37,48 @@ class IrisFaceMeshTracker {
         };
     }
 
-    // Add method to compute iris center (match calibration exactly)
-    // computeIrisCenter(landmarks, start, end) {
-    //     const points = landmarks.slice(start, end);
-    //     if (!points || points.length === 0) return null;
-    //
-    //     const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
-    //     const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
-    //
-    //     return { x: cx, y: cy };
-    // }
 
-    computeIrisCenter(landmarks, index) {
-        const point = landmarks[index];
-        if (!point) return null;
-        return { x: point.x, y: point.y };
+    /**
+     * Calculates iris position relative to eye corners (Local Coordinates).
+     * Returns {x, y} where x=0 is Inner Corner, x=1 is Outer Corner.
+     */
+    getRelativeIrisPos(landmarks, eyeSide) {
+        const indices = EYE_INDICES[eyeSide];
+        const pInner = landmarks[indices.inner];
+        const pOuter = landmarks[indices.outer];
+        const pIris = landmarks[indices.iris];
+
+        if (!pInner || !pOuter || !pIris) return null;
+
+        // 1. Calculate Vector Basis (Eye Width line)
+        const vecEye = { x: pOuter.x - pInner.x, y: pOuter.y - pInner.y };
+        const vecIris = { x: pIris.x - pInner.x, y: pIris.y - pInner.y };
+
+        // 2. Eye Width (Magnitude squared for projection)
+        const eyeWidthSq = vecEye.x * vecEye.x + vecEye.y * vecEye.y;
+        const eyeWidth = Math.sqrt(eyeWidthSq);
+
+        // 3. Project Iris onto horizontal Eye Axis (Scalar Projection)
+        // Formula: (Iris • Eye) / |Eye|^2
+        // This gives a normalized X value: 0.0 (Inner) -> 1.0 (Outer)
+        let normX = (vecIris.x * vecEye.x + vecIris.y * vecEye.y) / eyeWidthSq;
+
+        // 4. Calculate Vertical Offset (Cross Product)
+        // Measures distance from the line connecting corners
+        // Formula: (Iris x Eye) / |Eye|
+        const crossProduct = vecIris.x * vecEye.y - vecIris.y * vecEye.x;
+
+        // Scale Y: We multiply by 4.0 to amplify vertical movement / more sensitivity
+        let normY = 0.5 + (crossProduct / eyeWidth) * 4.0;
+
+        return { x: normX, y: normY };
     }
+
+    // computeIrisCenter(landmarks, index) {
+    //     const point = landmarks[index];
+    //     if (!point) return null;
+    //     return { x: point.x, y: point.y };
+    // }
 
     async initialize() {
         // Create hidden video element for camera input
@@ -102,30 +137,30 @@ class IrisFaceMeshTracker {
         // Fallback: Infer from coefficient magnitude
         const interceptMagnitude = Math.abs(coefX[0]);
 
-        if (interceptMagnitude > 10) {
-            // Pixel-based model (intercept ~200-1800)
-            return {
-                x: rawX / window.innerWidth,
-                y: rawY / window.innerHeight
-            };
-        } else {
-            // Normalized model (intercept ~-0.5 to 1.5)
-            return { x: rawX, y: rawY };
+        if (Math.abs(rawX) > 2.0 || Math.abs(rawY) > 2.0) {
+            return { x: rawX / window.innerWidth, y: rawY / window.innerHeight };
         }
+
+        return { x: rawX, y: rawY };
     }
 
     async startCamera() {
         try {
             this.videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: {ideal: 1920},
-                    height: {ideal: 1080},
+                    width: {ideal: 1280},
+                    height: {ideal: 720},
                     facingMode: 'user'
                 }
             });
 
             return new Promise((resolve) => {
                 this.videoElement.onloadeddata = () => {
+                    console.log('Camera ready:', {
+                        videoWidth: this.videoElement.videoWidth,
+                        videoHeight: this.videoElement.videoHeight,
+                        readyState: this.videoElement.readyState
+                    });
                     resolve();
                 };
             });
@@ -135,12 +170,16 @@ class IrisFaceMeshTracker {
         }
     }
 
+    getRelativeTime() {
+        if (!this.startTime) return 0;
+        return Date.now() - this.startTime;
+    }
+
     processFrame() {
-        if (!this.isTracking || !this.videoElement) return;
+        if (!this.isTracking || !this.videoElement || !this.faceLandmarker) return;
 
         const currentTime = performance.now();
 
-        // Detect face landmarks
         const results = this.faceLandmarker.detectForVideo(
             this.videoElement,
             currentTime
@@ -148,34 +187,23 @@ class IrisFaceMeshTracker {
 
         if (results.faceLandmarks && results.faceLandmarks.length > 0) {
             const landmarks = results.faceLandmarks[0];
+            // const timestamp = Date.now() - this.startTime;
             const timestamp = Date.now() - this.startTime;
 
             // Extract raw iris centers
-            const rightIrisRaw = this.computeIrisCenter(landmarks, this.RIGHT_IRIS_CENTER);
-            const leftIrisRaw = this.computeIrisCenter(landmarks, this.LEFT_IRIS_CENTER);
+            const rightRaw = this.getRelativeIrisPos(landmarks, 'right');
+            const leftRaw = this.getRelativeIrisPos(landmarks, 'left');
 
-            // 🔧 FIX: Un-mirror X coordinates
-            const rightIris = rightIrisRaw ? {
-                x: 1 - rightIrisRaw.x,
-                y: rightIrisRaw.y
-            } : null;
-
-            const leftIris = leftIrisRaw ? {
-                x: 1 - leftIrisRaw.x,
-                y: leftIrisRaw.y
-            } : null;
-
+            const rightIris = rightRaw ? { x: 1 - rightRaw.x, y: rightRaw.y } : null;
+            const leftIris = leftRaw ? { x: 1 - leftRaw.x, y: leftRaw.y } : null;
 
             // 🔍 DIAGNOSTIC - Log first 3 frames
             if (this.trackingData.length < 3) {
-                console.log(`🎮 Game Frame ${this.trackingData.length + 1}:`, {
-                    leftIris: leftIris,
-                    rightIris: rightIris,
-                    totalLandmarks: landmarks.length,
-                    videoSize: {
-                        width: this.videoElement.videoWidth,
-                        height: this.videoElement.videoHeight
-                    }
+                console.log(`🎮Frame ${this.trackingData.length + 1}:`, {
+                    timestamp,
+                    leftIris,
+                    rightIris,
+                    totalLandmarks: landmarks.length
                 });
             }
 
@@ -188,45 +216,47 @@ class IrisFaceMeshTracker {
                 calibratedLeft = this.predictGaze(leftIris, 'left');
                 calibratedRight = this.predictGaze(rightIris, 'right');
 
+                // Average the two eyes
                 if (calibratedLeft && calibratedRight) {
                     calibratedAvg = {
                         x: (calibratedLeft.x + calibratedRight.x) / 2,
                         y: (calibratedLeft.y + calibratedRight.y) / 2
                     };
-                } else if (calibratedLeft) {
-                    calibratedAvg = { ...calibratedLeft };
-                } else if (calibratedRight) {
-                    calibratedAvg = { ...calibratedRight };
                 }
+
 
                 // 🔍 DIAGNOSTIC - Log first 3 calibrated predictions
                 if (this.trackingData.length < 3) {
-                    console.log(`🎯 Calibrated Prediction ${this.trackingData.length + 1}:`, {
-                        raw: { left: leftIris, right: rightIris },
-                        calibrated: { left: calibratedLeft, right: calibratedRight, avg: calibratedAvg },
-                        model: {
-                            coefX_left_intercept: this.calibrationModel.left.coefX[0].toFixed(4),
-                            coefY_left_intercept: this.calibrationModel.left.coefY[0].toFixed(4)
-                        }
+                    console.log(`🎯 Calibrated ${this.trackingData.length + 1}:`, {
+                        raw: {left: leftIris, right: rightIris},
+                        calibrated: {left: calibratedLeft, right: calibratedRight, avg: calibratedAvg},
                     });
                 }
 
-                if (this.trackingData.length < 5) {
-                    console.log(`Frame ${this.trackingData.length + 1} gaze:`, {
-                        leftIris: leftIris,
-                        rightIris: rightIris,
-                        calibratedLeft: calibratedLeft,
-                        calibratedRight: calibratedRight,
-                        calibratedAvg: calibratedAvg
-                    });
-                }
 
+            } else {
+                // Fallback if no calibration (Use raw normalized inputs)
+                if (leftIris) calibratedLeft = leftIris;
+                if (rightIris) calibratedRight = rightIris;
+                if (leftIris && rightIris) {
+                    calibratedAvg = {
+                        x: (leftIris.x + rightIris.x) / 2,
+                        y: (leftIris.y + rightIris.y) / 2
+                    };
+                }
             }
+
 
             const dataPoint = {
                 timestamp: timestamp,
-                leftIris: { x: leftIris.x, y: leftIris.y },
-                rightIris: { x: rightIris.x, y: rightIris.y},
+
+                trial: this.currentContext.trial,
+                dotPosition: this.currentContext.dotPosition,
+                targetX: this.currentContext.targetX,
+                targetY: this.currentContext.targetY,
+
+                leftIris: leftIris,
+                rightIris: rightIris,
                 avgIris: {
                     x: (leftIris.x + rightIris.x) / 2,
                     y: (leftIris.y + rightIris.y) / 2,
@@ -237,16 +267,9 @@ class IrisFaceMeshTracker {
                     right: calibratedRight,
                     avg: calibratedAvg
                 },
-                // Context Data (applied from current state)
-                trial: this.currentContext.trial,
-                dotPosition: this.currentContext.dotPosition,
-                targetX: this.currentContext.targetX,
-                targetY: this.currentContext.targetY
+                x: calibratedAvg ? calibratedAvg.x : null,
+                y: calibratedAvg ? calibratedAvg.y : null
             };
-
-            if (!calibratedAvg && this.calibrationModel) {
-                console.warn(`Frame ${this.trackingData.length}: No calibrated data (left: ${!!calibratedLeft}, right: ${!!calibratedRight})`);
-            }
 
             if (!calibratedAvg && this.calibrationModel) {
                 console.warn(`Frame ${this.trackingData.length}: No calibrated data (left: ${!!calibratedLeft}, right: ${!!calibratedRight})`);
@@ -262,6 +285,7 @@ class IrisFaceMeshTracker {
         if (this.isTracking) {
             this.animationId = requestAnimationFrame(() => this.processFrame());
         }
+
     }
 
     performSaccadeDetection(currentPoint) {
@@ -373,9 +397,12 @@ class IrisFaceMeshTracker {
         // CSV header
         let csv = 'timestamp,leftIris_x,leftIris_y,rightIris_x,rightIris_y,avgIris_x,avgIris_y,cal_left_x,cal_left_y,cal_right_x,cal_right_y,cal_avg_x,cal_avg_y,isSaccade,velocity,trial,dotPosition,targetX,targetY\n';
 
+
         // CSV rows
         this.trackingData.forEach(point => {
-            csv += `${point.timestamp},`;
+
+
+            csv += `${point.timeStamp},`;
             csv += `${point.leftIris.x},${point.leftIris.y},`;
             csv += `${point.rightIris.x},${point.rightIris.y},`;
             csv += `${point.avgIris.x},${point.avgIris.y},`;

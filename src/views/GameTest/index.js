@@ -67,6 +67,8 @@ const GameTest = () => {
         return model.left.coefX.some(c => c !== 0);
     };
 
+
+
     // Fetch calibration from Firebase if not in Redux
     useEffect(() => {
         const fetchCalibration = async () => {
@@ -244,21 +246,20 @@ const GameTest = () => {
                     irisTracker.current.addTrialContext(i + 1, `${testPhase} - center`);
                 }
                 // Record when fixation starts
-                const fixationStartTime = irisTracker.current
-                    ? Date.now() - irisTracker.current.startTime
-                    : Date.now();
+                const fixationStartTime = irisTracker.current.getRelativeTime();
 
                 await wait(getFixationTime());
 
                 // Record when fixation ends
-                const fixationEndTime = irisTracker.current
-                    ? Date.now() - irisTracker.current.startTime
-                    : Date.now();
+                const fixationEndTime = irisTracker.current.getRelativeTime();
 
                 let trialThreshold = 30;
 
                 if (irisTracker.current) {
                     const allData = irisTracker.current.getTrackingData();
+
+                    console.log("Fixation Window:", fixationStartTime, "-", fixationEndTime);
+                    console.log("Data sample:", allData.slice(-1)[0]?.timestamp);
 
                     const fixationVelocities = allData
                         .filter(frame =>
@@ -267,7 +268,7 @@ const GameTest = () => {
                             frame.velocity !== undefined &&
                             frame.velocity !== null &&
                             !isNaN(frame.velocity) &&
-                            frame.velocity < 100  // Filter spurious movements
+                            frame.velocity < 300
                         )
                         .map(frame => frame.velocity);
 
@@ -291,13 +292,12 @@ const GameTest = () => {
                 const side = Math.random() > 0.5 ? 'left' : 'right';
 
                 setDotPosition(side);
-                const dotAppearanceTime = irisTracker.current
-                    ? Date.now() - irisTracker.current.startTime
-                    : Date.now();
 
-                if (irisTracker.current) {
-                    irisTracker.current.addTrialContext(i + 1, side);
-                }
+                const dotAppearanceTime = irisTracker.current.getRelativeTime();
+
+                // if (irisTracker.current) {
+                //     irisTracker.current.addTrialContext(i + 1, side);
+                // }
                 if (irisTracker.current) {
                     irisTracker.current.addTrialContext(i + 1, `${testPhase}-${side}`);
                 }
@@ -306,6 +306,7 @@ const GameTest = () => {
                 if (irisTracker.current) {
                     // Now get the data, which includes the movement that just happened
                     const allData = irisTracker.current.getTrackingData();
+
                     const analysis = analyzeSaccadeData(allData, dotAppearanceTime, {
                         requireValidData: true,
                         minLatency: 50,

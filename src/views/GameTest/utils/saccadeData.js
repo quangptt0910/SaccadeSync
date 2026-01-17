@@ -284,50 +284,70 @@ export const aggregateTrialStatistics = (trialsData, trialType = 'unknown') => {
  * @returns {Object} Comparison metrics
  */
 export const compareProVsAnti = (proStats, antiStats) => {
-    if (!proStats || !antiStats) {
-        return { error: 'Both pro and anti statistics required' };
+    // Safety check
+    if (!proStats || !antiStats || proStats.validTrialCount === 0 || antiStats.validTrialCount === 0) {
+        console.warn("⚠️ Cannot compare phases: Insufficient valid trials.");
+        return {
+            latencyDifference: 0,
+            errorRateComparison: 0,
+            impulsivityIndex: 0,
+            overallDiagnosis: "Inconclusive (Low Data Quality)"
+        };
     }
     // ADHD Research Indicators:
     // 1. Anti-saccade latency typically 50-100ms longer than pro-saccade
     // 2. Anti-saccade peak velocity may be reduced in ADHD
     // 3. Anti-saccade accuracy typically lower (requires inhibition)
 
-    const latencyDifference = antiStats.latency.mean - proStats.latency.mean;
-    const velocityRatio = antiStats.peakVelocity.mean / proStats.peakVelocity.mean;
-    const accuracyDifference = proStats.accuracy.mean - antiStats.accuracy.mean;
+    try {
+        const proLatency = proStats.latency?.mean || 0;
+        const antiLatency = antiStats.latency?.mean || 0;
+        const latencyDifference = antiLatency - proLatency;
+        const velocityRatio = antiStats.peakVelocity.mean / proStats.peakVelocity.mean;
+        const accuracyDifference = proStats.accuracy.mean - antiStats.accuracy.mean;
 
-    return {
-        latency: {
-            pro: proStats.latency.mean,
-            anti: antiStats.latency.mean,
-            difference: latencyDifference,
-            interpretation: latencyDifference > 100
-                ? 'Normal (anti > pro by >100ms)'
-                : 'Reduced anti-saccade cost'
-        },
+        return {
+            latency: {
+                pro: proStats.latency.mean,
+                anti: antiStats.latency.mean,
+                difference: latencyDifference,
+                interpretation: latencyDifference > 100
+                    ? 'Normal (anti > pro by >100ms)'
+                    : 'Reduced anti-saccade cost'
+            },
 
-        peakVelocity: {
-            pro: proStats.peakVelocity.mean,
-            anti: antiStats.peakVelocity.mean,
-            ratio: velocityRatio,
-            interpretation: velocityRatio < 0.85
-                ? 'Reduced anti-saccade velocity'
-                : 'Normal velocity'
-        },
+            peakVelocity: {
+                pro: proStats.peakVelocity.mean,
+                anti: antiStats.peakVelocity.mean,
+                ratio: velocityRatio,
+                interpretation: velocityRatio < 0.85
+                    ? 'Reduced anti-saccade velocity'
+                    : 'Normal velocity'
+            },
 
-        accuracy: {
-            pro: proStats.accuracy.mean,
-            anti: antiStats.accuracy.mean,
-            difference: accuracyDifference,
-            interpretation: accuracyDifference > 0.15
-                ? 'Significant anti-saccade accuracy reduction'
-                : 'Normal accuracy pattern'
-        },
+            accuracy: {
+                pro: proStats.accuracy.mean,
+                anti: antiStats.accuracy.mean,
+                difference: accuracyDifference,
+                interpretation: accuracyDifference > 0.15
+                    ? 'Significant anti-saccade accuracy reduction'
+                    : 'Normal accuracy pattern'
+            },
 
-        dataQuality: {
-            pro: proStats.averageDataQuality,
-            anti: antiStats.averageDataQuality,
-            overall: (proStats.averageDataQuality + antiStats.averageDataQuality) / 2
-        }
-    };
+            dataQuality: {
+                pro: proStats.averageDataQuality,
+                anti: antiStats.averageDataQuality,
+                overall: (proStats.averageDataQuality + antiStats.averageDataQuality) / 2
+            }
+        };
+    } catch (error) {
+        console.error("Error comparing pro vs anti saccade stats:", error);
+        return {
+            latencyDifference: 0,
+            errorRateComparison: 0,
+            impulsivityIndex: 0,
+            overallDiagnosis: "Inconclusive (Error in Comparison)"
+        };
+    }
+
 };

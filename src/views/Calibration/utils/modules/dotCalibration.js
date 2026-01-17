@@ -82,8 +82,50 @@ export function animateDotTo(tx, ty, duration = TRANSITION_MS) {
 }
 
 //CHANGED: use only center points for iris
-const RIGHT_IRIS_CENTER = 473;
-const LEFT_IRIS_CENTER = 468;
+// const RIGHT_IRIS_CENTER = 473;
+// const LEFT_IRIS_CENTER = 468;
+const EYE_INDICES = {
+    // Subject's Left Eye (MediaPipe indices)
+    left: { inner: 33, outer: 133, iris: 468 },
+    // Subject's Right Eye (MediaPipe indices)
+    right: { inner: 362, outer: 263, iris: 473 }
+};
+
+/**
+ * Calculates iris position relative to eye corners (Local Coordinates).
+ * Returns {x, y} where x=0 is Inner Corner, x=1 is Outer Corner.
+ */
+function getRelativeIrisPos(landmarks, eyeSide) {
+    const indices = EYE_INDICES[eyeSide];
+    const pInner = landmarks[indices.inner];
+    const pOuter = landmarks[indices.outer];
+    const pIris = landmarks[indices.iris];
+
+    if (!pInner || !pOuter || !pIris) return null;
+
+    // 1. Calculate Vector Basis (Eye Width line)
+    const vecEye = { x: pOuter.x - pInner.x, y: pOuter.y - pInner.y };
+    const vecIris = { x: pIris.x - pInner.x, y: pIris.y - pInner.y };
+
+    // 2. Eye Width (Magnitude squared for projection)
+    const eyeWidthSq = vecEye.x * vecEye.x + vecEye.y * vecEye.y;
+    const eyeWidth = Math.sqrt(eyeWidthSq);
+
+    // 3. Project Iris onto horizontal Eye Axis (Scalar Projection)
+    // Formula: (Iris • Eye) / |Eye|^2
+    // This gives a normalized X value: 0.0 (Inner) -> 1.0 (Outer)
+    let normX = (vecIris.x * vecEye.x + vecIris.y * vecEye.y) / eyeWidthSq;
+
+    // 4. Calculate Vertical Offset (Cross Product)
+    // Measures distance from the line connecting corners
+    // Formula: (Iris x Eye) / |Eye|
+    const crossProduct = vecIris.x * vecEye.y - vecIris.y * vecEye.x;
+
+    // Scale Y: We multiply by 4.0 to amplify vertical movement / more sensitivity
+    let normY = 0.5 + (crossProduct / eyeWidth) * 4.0;
+
+    return { x: normX, y: normY };
+}
 
 function computeIrisCenter(landmarks, index) {
     const point = landmarks[index];
@@ -154,10 +196,25 @@ export async function collectSamplesForPoint(idx, screenX, screenY) {
         const r = faceLandmarker.detectForVideo(refs.video, performance.now());
         if (r?.faceLandmarks?.length) {
             const lm = r.faceLandmarks[0];
-            const rightRaw = computeIrisCenter(lm, RIGHT_IRIS_CENTER);
-            const leftRaw = computeIrisCenter(lm, LEFT_IRIS_CENTER);
+            // const right = computeIrisCenter(lm, RIGHT_IRIS_CENTER);
+            // const left = computeIrisCenter(lm, LEFT_IRIS_CENTER);
 
-            if (!leftRaw && !rightRaw) {
+            // Use local coordinates (0.0 - 1.0 relative to eye corners)
+            // No need for manual "1 - x" flipping here; the corners define the direction.
+            const rightRaw = getRelativeIrisPos(lm, 'right');
+            const leftRaw = getRelativeIrisPos(lm, 'left');
+
+            // NOTE: Even with local coords, we ensure the object structure is clean
+            const right = rightRaw ? {
+                x: 1 - rightRaw.x, // FLIP X to match screen direction
+                y: rightRaw.y
+            } : null;
+
+            const left = leftRaw ? {
+                x: 1 - leftRaw.x, // FLIP X to match screen direction
+                y: leftRaw.y
+            } : null;
+            if (!left && !right) {
                 await sleep(SAMPLE_INTERVAL_MS);
                 continue;
             }
@@ -168,58 +225,27 @@ export async function collectSamplesForPoint(idx, screenX, screenY) {
                 continue;
             }
 
-
-            // 🔧 FIX: Un-mirror the X coordinates
-            const right = rightRaw ? {
-                x: 1 - rightRaw.x,  // Flip horizontal
-                y: rightRaw.y
-            } : null;
-
-            const left = leftRaw ? {
-                x: 1 - leftRaw.x,   // Flip horizontal
-                y: leftRaw.y
-            } : null;
-
-            // 🔍 COMPREHENSIVE LANDMARK DEBUG
-            if (count === 0 && idx === 0) {
-                console.group('🔬 LANDMARK EXTRACTION TEST');
-
-                // Test different landmark indices
-                console.log('Landmark 468 (LEFT iris center):', lm[468]);
-                console.log('Landmark 473 (RIGHT iris center):', lm[473]);
-                console.log('Landmark 469 (LEFT iris edge):', lm[469]);
-                console.log('Landmark 474 (RIGHT iris edge):', lm[474]);
-
-                // Test face landmarks for comparison
-                console.log('Landmark 0 (face point):', lm[0]);
-                console.log('Landmark 10 (face point):', lm[10]);
-
-                // What you're ACTUALLY extracting
-                console.log('Total landmarks available:', lm.length);
-
-                console.groupEnd();
-            }
-
             if (count === 0) {
-                console.log(`📍 Calibration Point ${idx}:`, {
-                    dotPixels: {
-                        x: screenX * window.innerWidth,
-                        y: screenY * window.innerHeight
-                    },
+                console.log(`📍 Point ${idx} (target: ${screenX.toFixed(2)}, ${screenY.toFixed(2)}):`, {
+                    dotPixels: { x: screenX * window.innerWidth, y: screenY * window.innerHeight },
                     targetNormalized: { x: screenX, y: screenY },
+
+                    // 🔍 RAW LANDMARKS (before flip)
+                    raw_468_frameLeft: leftRaw,
+                    raw_473_frameRight: rightRaw,
+
+                    // After processing
                     irisLeft: left,
                     irisRight: right,
-                    videoSize: {
-                        width: refs.video.videoWidth,
-                        height: refs.video.videoHeight
-                    },
+
+                    videoSize: { width: refs.video.videoWidth, height: refs.video.videoHeight },
                     totalLandmarks: lm.length
                 });
             }
 
             gazeData.push({
                 point_index: idx,
-                targetX: screenX, // Normalized in the runDotCalibration
+                targetX: screenX,
                 targetY: screenY,
                 iris_left: left,
                 iris_right: right
@@ -260,6 +286,8 @@ export async function runDotCalibration(onComplete) {
         screenHeight: window.screen.height
     });
     console.groupEnd();
+
+
 
     try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); } catch {}
 

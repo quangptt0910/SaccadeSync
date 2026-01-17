@@ -4,7 +4,7 @@ import { VelocityConfig, getPixelsPerDegree } from './velocityConfig';
  * Validates time delta between frames
  */
 const isValidTimeDelta = (timeDeltaSec) => {
-    return timeDeltaSec > 0 && timeDeltaSec <= VelocityConfig.TIME.MAX_DELTA_SEC;
+    return timeDeltaSec > 0 && timeDeltaSec <= VelocityConfig.TIME.MAX_DELTA_SEC * 2;
 };
 
 /**
