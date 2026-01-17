@@ -265,8 +265,8 @@ export const aggregateTrialStatistics = (trialsData, trialType = 'unknown') => {
             mean: mean(gains),
             std: std(gains),
             median: median(gains),
-            // Count how many were hypometric (undershoots < 0.85)
-            hypometricRate: gains.filter(g => g < 0.85).length / gains.length
+            // Count how many were hypometric (undershoots < 0.75)
+            hypometricRate: gains.filter(g => g < 0.75).length / gains.length
         },
         // Duration Statistics (ms)
         duration: durations.length > 0 ? {
@@ -349,7 +349,7 @@ export const compareProVsAnti = (proStats, antiStats) => {
                 pro: proGain,
                 anti: antiGain,
                 difference: gainDifference,
-                interpretation: proGain < 0.8 // a soften magic number from the literature
+                interpretation: proGain < 0.75 // a soften magic number from the literature
                     ? 'Significant Hypometria (Undershoot)'
                     : 'Normal Gain'
             },

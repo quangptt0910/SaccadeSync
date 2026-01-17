@@ -45,7 +45,7 @@ export const VelocityConfig = {
             EXPRESS_THRESHOLD_MS: 120,  // Flag as express if <120ms
         },
         ANTI_SACCADE: {
-            MIN_MS: 150,  // Inhibition takes longer
+            MIN_MS: 90,  // Inhibition takes longer
             MAX_MS: 800,  // Upper limit for antisaccades
             EXPRESS_THRESHOLD_MS: 180,
         }

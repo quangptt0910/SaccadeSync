@@ -148,8 +148,9 @@ class IrisFaceMeshTracker {
         try {
             this.videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    width: {ideal: 1280},
-                    height: {ideal: 720},
+                    width: {ideal: 1920, min: 1280},
+                    height: {ideal: 1080, min: 720},
+                    frameRate: { ideal: 60 },
                     facingMode: 'user'
                 }
             });
