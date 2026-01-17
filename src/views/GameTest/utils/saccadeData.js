@@ -215,6 +215,7 @@ export const aggregateTrialStatistics = (trialsData, trialType = 'unknown') => {
     const peakVelocities = validTrials.map(t => t.peakVelocity);
     const accuracies = validTrials.map(t => t.accuracy);
     const durations = validTrials.map(t => t.duration).filter(d => d !== null);
+    const gain = validTrials.map(t => t.saccadicGain).filter(g => g !== null);
 
     const mean = (arr) => arr.reduce((sum, val) => sum + val, 0) / arr.length;
     const std = (arr) => {
@@ -260,6 +261,13 @@ export const aggregateTrialStatistics = (trialsData, trialType = 'unknown') => {
             median: median(accuracies)
         },
 
+        gain: {
+            mean: mean(gains),
+            std: std(gains),
+            median: median(gains),
+            // Count how many were hypometric (undershoots < 0.85)
+            hypometricRate: gains.filter(g => g < 0.85).length / gains.length
+        },
         // Duration Statistics (ms)
         duration: durations.length > 0 ? {
             mean: mean(durations),
@@ -306,12 +314,16 @@ export const compareProVsAnti = (proStats, antiStats) => {
         const velocityRatio = antiStats.peakVelocity.mean / proStats.peakVelocity.mean;
         const accuracyDifference = proStats.accuracy.mean - antiStats.accuracy.mean;
 
+        const proGain = proStats.gain?.mean || 0;
+        const antiGain = antiStats.gain?.mean || 0;
+        const gainDifference = proGain - antiGain;
+
         return {
             latency: {
                 pro: proStats.latency.mean,
                 anti: antiStats.latency.mean,
                 difference: latencyDifference,
-                interpretation: latencyDifference > 100
+                interpretation: latencyDifference > 100 // magic number
                     ? 'Normal (anti > pro by >100ms)'
                     : 'Reduced anti-saccade cost'
             },
@@ -320,7 +332,7 @@ export const compareProVsAnti = (proStats, antiStats) => {
                 pro: proStats.peakVelocity.mean,
                 anti: antiStats.peakVelocity.mean,
                 ratio: velocityRatio,
-                interpretation: velocityRatio < 0.85
+                interpretation: velocityRatio < 0.85 // magic number
                     ? 'Reduced anti-saccade velocity'
                     : 'Normal velocity'
             },
@@ -329,11 +341,18 @@ export const compareProVsAnti = (proStats, antiStats) => {
                 pro: proStats.accuracy.mean,
                 anti: antiStats.accuracy.mean,
                 difference: accuracyDifference,
-                interpretation: accuracyDifference > 0.15
+                interpretation: accuracyDifference > 0.15 // magic number
                     ? 'Significant anti-saccade accuracy reduction'
                     : 'Normal accuracy pattern'
             },
-
+            gain: {
+                pro: proGain,
+                anti: antiGain,
+                difference: gainDifference,
+                interpretation: proGain < 0.8 // a soften magic number from the literature
+                    ? 'Significant Hypometria (Undershoot)'
+                    : 'Normal Gain'
+            },
             dataQuality: {
                 pro: proStats.averageDataQuality,
                 anti: antiStats.averageDataQuality,

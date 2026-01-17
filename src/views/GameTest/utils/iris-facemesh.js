@@ -401,8 +401,7 @@ class IrisFaceMeshTracker {
         // CSV rows
         this.trackingData.forEach(point => {
 
-
-            csv += `${point.timeStamp},`;
+            csv += `${point.startTime || point.timestamp},`;
             csv += `${point.leftIris.x},${point.leftIris.y},`;
             csv += `${point.rightIris.x},${point.rightIris.y},`;
             csv += `${point.avgIris.x},${point.avgIris.y},`;
