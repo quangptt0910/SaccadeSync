@@ -47,6 +47,14 @@ ChartJS.register(
     Filler
 );
 
+// Research-based thresholds for ADHD likelihood
+const ADHD_THRESHOLDS = {
+  LATENCY_PRO: 380,    // ms
+  LATENCY_ANTI: 450,   // ms
+  ACCURACY_ANTI: 70,   // %
+  VARIABILITY_PRO: 35  // ms (Standard Deviation)
+};
+
 const Results = () => {
   const user = useSelector(selectUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -154,7 +162,7 @@ const Results = () => {
         {
           type: 'line',
           label: 'ADHD Likelihood Threshold',
-          data: [380, 450], // Pro > 280ms, Anti > 350ms
+          data: [ADHD_THRESHOLDS.LATENCY_PRO, ADHD_THRESHOLDS.LATENCY_ANTI],
           borderColor: 'rgba(100, 100, 100, 0.5)',
           borderWidth: 2,
           borderDash: [5, 5],
@@ -183,25 +191,25 @@ const Results = () => {
     let riskCount = 0;
 
     // 1. Pro-Saccade Latency (Normal: 170-250ms, ADHD: >280ms)
-    if (proLat > 380) {
+    if (proLat > ADHD_THRESHOLDS.LATENCY_PRO) {
       findings.push(`Pro-saccade reaction time (${Math.round(proLat)}ms) is slower than the typical control range (>280ms).`);
       riskCount++;
     }
 
     // 2. Anti-Saccade Latency (Normal: 300-340ms, ADHD: >350ms)
-    if (antiLat > 450) {
+    if (antiLat > ADHD_THRESHOLDS.LATENCY_ANTI) {
       findings.push(`Anti-saccade reaction time (${Math.round(antiLat)}ms) is elevated compared to norms (>350ms).`);
       riskCount++;
     }
 
     // 3. Anti-Saccade Accuracy (Normal Error < 25% -> Acc > 75%, ADHD Error > 30% -> Acc < 70%)
-    if (antiAcc < 70) {
+    if (antiAcc < ADHD_THRESHOLDS.ACCURACY_ANTI) {
       findings.push(`Anti-saccade accuracy (${Math.round(antiAcc)}%) is lower than the typical range (>75%), suggesting difficulty with inhibition.`);
       riskCount++;
     }
 
     // 4. Variability (Pro SD) (Control: ~26ms, ADHD: ~42ms)
-    if (proSD > 35) {
+    if (proSD > ADHD_THRESHOLDS.VARIABILITY_PRO) {
       findings.push(`Reaction time variability (±${Math.round(proSD)}ms) is higher than the stable control baseline (~26ms).`);
       riskCount++;
     }
