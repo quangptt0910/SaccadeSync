@@ -1,8 +1,14 @@
 // Calibration\display.js
-import { refs } from "./domRefs.js";
-import { gazeData, calibrationModel } from "./dotCalibration.js";
 import { ridgeRegression, findOptimalLambda, leastSquares} from "./mathUtils.js";
+import { gazeData, calibrationModel } from "./dotCalibration.js";
 
+/**
+ * Calculates the prediction model based on collected gaze data.
+ * It builds matrices from the gaze points and iris positions, performs a least-squares fit,
+ * validates the model accuracy, and updates the global calibrationModel object.
+ *
+ * @returns {Object} An object containing success flags, RMSE values, and accuracy scores for both eyes.
+ */
 export function displayPredictionModel(useRidge = true) {
 
     const buildMatrices = (eye) => {
@@ -95,7 +101,6 @@ export function displayPredictionModel(useRidge = true) {
 
     const leftRes = fitAndValidate(buildMatrices("left"), "left");
     const rightRes = fitAndValidate(buildMatrices("right"), "right");
-
 
 
 

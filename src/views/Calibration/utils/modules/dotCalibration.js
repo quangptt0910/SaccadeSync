@@ -5,13 +5,26 @@ import { distanceOK } from "./distance.js";
 import { stopDistanceCheck } from "./video.js";
 import {displayPredictionModel} from "./display";
 
+/**
+ * Array storing collected raw gaze samples.
+ * Each entry contains screen target coordinates and iris positions.
+ * @type {Array<Object>}
+ */
 export let gazeData = [];
+
+/**
+ * The resulting calibration coefficients for left and right eyes after 'fitting'.
+ * @type {Object}
+ */
 export let calibrationModel = {
     left: { coefX: [0,0,0,0,0,0], coefY: [0,0,0,0,0,0] },
     right: { coefX: [0,0,0,0,0,0], coefY: [0,0,0,0,0,0] }
 };
 
+/** @type {boolean} Flag indicating if the dot calibration sequence is active. */
 export let runningDot = false;
+
+/** @type {boolean} Flag used to signal the calibration loop to abort. */
 export let abortDot = false;
 
 // utils points (screen ratios)
@@ -34,6 +47,9 @@ const WAIT_AFTER = 200;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+/**
+ * Displays the full-screen warning overlay when distance or face detection fails during calibration.
+ */
 export function showFsWarning() {
     refs.fsWarning.style.display = "flex";
     refs.fsWarningPanel.style.opacity = "1";
@@ -50,18 +66,34 @@ export function showFsWarning() {
     }
 }
 
+/**
+ * Hides the full-screen warning overlay.
+ */
 export function hideFsWarning() {
     refs.fsWarning.style.display = "none";
     refs.fsWarningPanel.style.opacity = "0";
 }
 
-// dot animation and placement
-export function placeDot(x, y, visible = true) {
+/**
+ * Immediately positions the calibration dot element at specific pixel coordinates.
+ * @param {number} x - Left offset in pixels.
+ * @param {number} y - Top offset in pixels.
+ * @param {boolean} [visible=true] - Whether the dot should be visible.
+ */export function placeDot(x, y, visible = true) {
     refs.calDot.style.left = `${x}px`;
     refs.calDot.style.top = `${y}px`;
     refs.calDot.style.opacity = visible ? "1" : "0";
 }
 
+/**
+ * Animates the calibration dot from its current position to target coordinates.
+ * Uses a cubic ease-out function for smooth movement.
+ *
+ * @param {number} tx - Target X coordinate in pixels.
+ * @param {number} ty - Target Y coordinate in pixels.
+ * @param {number} [duration=TRANSITION_MS] - Animation duration in milliseconds.
+ * @returns {Promise<void>} Resolves when animation completes.
+ */
 export function animateDotTo(tx, ty, duration = TRANSITION_MS) {
     return new Promise(resolve => {
         const startX = parseFloat(refs.calDot.style.left || "-1000");
@@ -81,9 +113,7 @@ export function animateDotTo(tx, ty, duration = TRANSITION_MS) {
     });
 }
 
-//CHANGED: use only center points for iris
-// const RIGHT_IRIS_CENTER = 473;
-// const LEFT_IRIS_CENTER = 468;
+//CHANGED: use iris of eyes vs eyes coordinates (local coordinate)
 const EYE_INDICES = {
     // Subject's Left Eye (MediaPipe indices)
     left: { inner: 33, outer: 133, iris: 468 },
@@ -127,21 +157,11 @@ function getRelativeIrisPos(landmarks, eyeSide) {
     return { x: normX, y: normY };
 }
 
-function computeIrisCenter(landmarks, index) {
-    const point = landmarks[index];
-    if (!point) return null;
-    return { x: point.x, y: point.y };
-}
-
-// function computeCenterAndRadius(points) {
-//     if (!points?.length) return null;
-//     const cx = points.reduce((s,p)=>s+p.x,0)/points.length;
-//     const cy = points.reduce((s,p)=>s+p.y,0)/points.length;
-//     const r = points.reduce((s,p)=>s+Math.hypot(p.x-cx,p.y-cy),0)/points.length;
-//     return { x: cx, y: cy, r };
-// }
-
-// dot positions in pixels
+/**
+ * Calculates the exact screen pixel coordinates for the calibration points.
+ * Applies a margin to ensure points are not too close to the screen edge.
+ * @returns {Array<Object>} Array of objects with x and y properties.
+ */
 export function getDotPoints() {
     // The height/width of the screen
     const w = window.innerWidth;
@@ -174,7 +194,15 @@ export function getDotPoints() {
     ];
 }
 
-// collect iris samples for a point
+/**
+ * Collects a specified number of gaze samples (iris positions) for a specific calibration point.
+ * Handles pausing if face detection or distance fails.
+ *
+ * @param {number} idx - The index of the calibration point.
+ * @param {number} screenX - The normalized X screen coordinate (0-1).
+ * @param {number} screenY - The normalized Y screen coordinate (0-1).
+ * @returns {Promise<boolean|string>} Returns "RESTART" if flow was interrupted, true on success, false on abort.
+ */
 export async function collectSamplesForPoint(idx, screenX, screenY) {
     let count = 0;
     let skipCount = 0;
@@ -258,6 +286,12 @@ export async function collectSamplesForPoint(idx, screenX, screenY) {
     return true;
 }
 
+/**
+ * Orchestrates the full dot calibration sequence.
+ * Enters fullscreen, animates the dot through points, collects data, and computes the model.
+ *
+ * @param {Function} onComplete - Callback function invoked with gazeData, model, and metrics upon success.
+ */
 export async function runDotCalibration(onComplete) {
     if (runningDot) {
         console.warn('⚠️ Calibration already running!');
@@ -269,23 +303,23 @@ export async function runDotCalibration(onComplete) {
         return;
     }
 
-    console.group('📹 Video Configuration');
-    console.log('Video element:', refs.video);
-    console.log('Video dimensions:', {
-        videoWidth: refs.video.videoWidth,
-        videoHeight: refs.video.videoHeight,
-        clientWidth: refs.video.clientWidth,
-        clientHeight: refs.video.clientHeight,
-        offsetWidth: refs.video.offsetWidth,
-        offsetHeight: refs.video.offsetHeight
-    });
-    console.log('Screen dimensions:', {
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height
-    });
-    console.groupEnd();
+    // console.group('📹 Video Configuration');
+    // console.log('Video element:', refs.video);
+    // console.log('Video dimensions:', {
+    //     videoWidth: refs.video.videoWidth,
+    //     videoHeight: refs.video.videoHeight,
+    //     clientWidth: refs.video.clientWidth,
+    //     clientHeight: refs.video.clientHeight,
+    //     offsetWidth: refs.video.offsetWidth,
+    //     offsetHeight: refs.video.offsetHeight
+    // });
+    // console.log('Screen dimensions:', {
+    //     innerWidth: window.innerWidth,
+    //     innerHeight: window.innerHeight,
+    //     screenWidth: window.screen.width,
+    //     screenHeight: window.screen.height
+    // });
+    // console.groupEnd();
 
 
 

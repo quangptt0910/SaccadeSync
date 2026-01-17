@@ -9,6 +9,13 @@ import { selectUser } from "../../store/authSlice";
 import Button from "../../components/Button";
 import "./Calibration.css";
 
+/**
+ * Calibration Component.
+ *
+ * This is the main view for the eye-tracking calibration process.
+ * It manages the UI states (idle, success, failed), initializes the webcam and MediaPipe models via helper utilities,
+ * verifies calibration accuracy against a threshold, and persists successful models to Firebase and Redux.
+ */
 export default function Calibration() {
     const dispatch = useDispatch();
     const navigate = useNavigate();

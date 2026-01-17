@@ -1,10 +1,19 @@
 import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
-import { refs } from "./domRefs.js";
 
 const { FaceLandmarker, FilesetResolver } = vision;
 
+/**
+ * Global reference to the MediaPipe FaceLandmarker instance.
+ * @type {FaceLandmarker|null}
+ */
 export let faceLandmarker = null;
 
+/**
+ * Initializes the MediaPipe FaceLandmarker with GPU delegation.
+ * Loads the WASM files and the specific face landmarker model asset.
+ *
+ * @returns {Promise<void>} Resolves when the model is ready.
+ */
 export async function initFaceLandmarker() {
 
     const resolver = await FilesetResolver.forVisionTasks(
