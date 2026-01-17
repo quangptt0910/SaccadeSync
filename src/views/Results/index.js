@@ -1,3 +1,16 @@
+/**
+ * Results View Component
+ *
+ * This component is responsible for fetching, processing, and visualizing the eye-tracking test results
+ * for the authenticated user. It connects to Firebase Firestore to retrieve session history and
+ * uses Chart.js to display metrics such as latency, accuracy, and peak velocity.
+ *
+ * Key Features:
+ * - Historical timeline of reaction times.
+ * - Detailed breakdown of the selected session (Pro vs Anti saccade).
+ * - Automated interpretation of results based on clinical research thresholds (ADHD likelihood).
+ * - Comparison against control group norms.
+ */
 import React, {useEffect, useState, useMemo} from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
@@ -46,7 +59,7 @@ const Results = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // fetch data from Firebase
+  // Fetch saccade metrics history from Firebase Firestore
   useEffect(() => {
     const fetchMetrics = async () => {
       if (!user?.uid) return;
@@ -97,6 +110,7 @@ const Results = () => {
     setSelectedSession(session);
   };
 
+  // Prepare data for the historical timeline chart (last 14 sessions)
   const timelineChartData = useMemo(() => {
     // get history from the last 14 sessions
     const sortedHistory = historyData.slice(0, 14).reverse();
@@ -122,6 +136,7 @@ const Results = () => {
     };
   }, [historyData]);
 
+  // Prepare data for the current session's latency bar chart
   const barChartData = useMemo(() => {
     if (!selectedSession) return null;
     return {
@@ -151,6 +166,11 @@ const Results = () => {
     };
   }, [selectedSession]);
 
+  /**
+   * Generates a text-based interpretation of the results.
+   * Compares user metrics against research-based thresholds for ADHD likelihood.
+   * Returns a summary string and a list of specific findings.
+   */
   const interpretation = useMemo(() => {
     if (!selectedSession) return null;
 
