@@ -1,8 +1,17 @@
-// Calibration/mathUtils.js
+/**
+ * @file mathUtils.js
+ * @description Mathematical utility functions for calibration algorithms.
+ * Primarily focuses on regression techniques including Ordinary Least Squares (OLS)
+ * and Ridge Regression (L2 Regularization) to map eye features to screen coordinates.
+ */
 
 /**
- * Ordinary Least Squares (your current method)
- * Solves: β = (X^T X)^-1 X^T y
+ * Performs Ordinary Least Squares (OLS) regression.
+ * Solves the linear equation system: β = (X^T X)^-1 X^T y
+ *
+ * @param {Array<Array<number>>} A - The design matrix X (m samples × n features).
+ * @param {Array<number>} b - The target values vector y (m × 1).
+ * @returns {Array<number>|null} The coefficients vector β (n × 1), or null if the matrix is singular.
  */
 export function leastSquares(A, b) {
     const m = A.length;
@@ -37,13 +46,14 @@ export function leastSquares(A, b) {
 }
 
 /**
- * Ridge Regression (L2 regularization)
- * Solves: β = (X^T X + λI)^-1 X^T y
+ * Performs Ridge Regression (L2 regularization).
+ * Solves the linear equation system with a regularization term: β = (X^T X + λI)^-1 X^T y
+ * This is useful to prevent overfitting, especially when the number of features is large relative to samples.
  *
- * @param {Array<Array<number>>} A - Design matrix (m samples × n features)
- * @param {Array<number>} b - Target values (m × 1)
- * @param {number} lambda - Regularization parameter (default: 0.01)
- * @returns {Array<number>|null} - Coefficients (n × 1) or null if failed
+ * @param {Array<Array<number>>} A - The design matrix X (m samples × n features).
+ * @param {Array<number>} b - The target values vector y (m × 1).
+ * @param {number} [lambda=0.01] - The regularization parameter λ. Higher values enforce stronger regularization.
+ * @returns {Array<number>|null} The coefficients vector β (n × 1), or null if the calculation fails.
  */
 export function ridgeRegression(A, b, lambda = 0.01) {
     const m = A.length;
@@ -89,7 +99,11 @@ export function ridgeRegression(A, b, lambda = 0.01) {
 }
 
 /**
- * Gaussian Elimination for solving Ax = b
+ * Solves a system of linear equations Ax = b using Gaussian Elimination.
+ *
+ * @param {Array<Array<number>>} A - The coefficient matrix (n × n).
+ * @param {Array<number>} b - The constant vector (n × 1).
+ * @returns {Array<number>|null} The solution vector x (n × 1), or null if the matrix is singular.
  */
 function gaussianElimination(A, b) {
     const n = A.length;
@@ -139,8 +153,13 @@ function gaussianElimination(A, b) {
 }
 
 /**
- * Cross-validation to find optimal lambda
- * Uses k-fold cross-validation
+ * Performs k-fold cross-validation to find the optimal regularization parameter (lambda) for Ridge Regression.
+ *
+ * @param {Array<Array<number>>} A - The design matrix X.
+ * @param {Array<number>} b - The target values vector y.
+ * @param {Array<number>} [lambdaRange=[0.001, 0.01, 0.1, 1.0, 10.0]] - Array of lambda values to test.
+ * @param {number} [k=5] - Number of folds for cross-validation.
+ * @returns {number} The lambda value that resulted in the lowest average Mean Squared Error.
  */
 export function findOptimalLambda(A, b, lambdaRange = [0.001, 0.01, 0.1, 1.0, 10.0], k = 5) {
     const m = A.length;

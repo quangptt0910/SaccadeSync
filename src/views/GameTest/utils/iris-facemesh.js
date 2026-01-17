@@ -150,6 +150,7 @@ class IrisFaceMeshTracker {
                 video: {
                     width: {ideal: 1280},
                     height: {ideal: 720},
+                    frameRate: { ideal: 60, min: 30 },
                     facingMode: 'user'
                 }
             });

@@ -63,9 +63,9 @@ export async function startDistanceCheck() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-                width: { ideal: 1280, min: 1280 },      // Request 1280
-                height: { ideal: 720, min: 720 },       // Request 720
-                frameRate: { ideal: 30 },
+                width: { ideal: 1280 },      // Request 1280
+                height: { ideal: 720 },       // Request 720
+                frameRate: { ideal: 60, min: 30 },
                 facingMode: "user"
             },
             audio: false,
