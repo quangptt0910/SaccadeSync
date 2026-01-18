@@ -291,7 +291,7 @@ const GameTest = () => {
                     if (fixationVelocities.length >= 15) { // ~ 500 ms
                         trialThreshold = calculatePerTrialThreshold(fixationVelocities);
                     } else {
-                        console.warn(`Trial ${i+1}: Insufficient fixation data (${fixationVelocities.length} samples). Using default threshold: 30 deg/s`);
+                        console.warn(`Trial ${i+1}: Insufficient fixation data (${fixationVelocities.length} samples). Using default threshold: 25 deg/s`);
                     }
                 }
 
@@ -370,7 +370,7 @@ const GameTest = () => {
 
                 if (testPhase === 'pro') {
                     // If we just finished Pro-Saccade, trigger break time
-                    console.log("Saccade Analysis Data:", currentPhaseTrials);
+                    console.log("Pro-Saccade Analysis Data:", currentPhaseTrials);
                     setShowBreak(true);
                 } else {
                     // If we just finished Anti-Saccade, Finish the game

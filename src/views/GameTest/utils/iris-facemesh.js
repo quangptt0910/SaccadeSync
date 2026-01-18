@@ -386,7 +386,7 @@ class IrisFaceMeshTracker {
      * This context is attached to every subsequent data frame.
      * 
      * @param {number} trialNumber - The current trial number.
-     * @param {string} dotPosition - The position of the target dot (e.g., 'left', 'right', 'center').
+     * @param {string} dotPosition - The test phase + The position of the target dot (e.g., 'left', 'right', 'center').
      */
     addTrialContext(trialNumber, dotPosition) {
         // Calculate target coordinates based on dotPosition
