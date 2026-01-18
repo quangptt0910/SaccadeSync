@@ -13,7 +13,7 @@ import {
     compareProVsAnti
 } from './utils/saccadeData';
 import IrisFaceMeshTracker from "./utils/iris-facemesh";
-import {calculatePerTrialThreshold} from "./utils/velocityConfig";
+import {calculatePerTrialThreshold, MetricConfig} from "./utils/metricConfig";
 
 
 const GameTest = () => {
@@ -50,7 +50,7 @@ const GameTest = () => {
     const breakTime = 60000;
     const interTrialInterval = 1000;
 
-    // test parameters
+    // test parameters (dot time)
     const gapTimeBetweenCenterDot = 200;
     const maxFixation = 2500;
     const minFixation = 1000;
@@ -253,7 +253,7 @@ const GameTest = () => {
                 // Record when fixation ends
                 const fixationEndTime = irisTracker.current.getRelativeTime();
 
-                let trialThreshold = 30;
+                let trialThreshold = MetricConfig.SACCADE.STATIC_THRESHOLD_DEG_PER_SEC; // 30 degree
 
                 if (irisTracker.current) {
                     const allData = irisTracker.current.getTrackingData();
@@ -268,11 +268,11 @@ const GameTest = () => {
                             frame.velocity !== undefined &&
                             frame.velocity !== null &&
                             !isNaN(frame.velocity) &&
-                            frame.velocity < 300
+                            frame.velocity < trialThreshold
                         )
                         .map(frame => frame.velocity);
 
-                    if (fixationVelocities.length >= 20) {
+                    if (fixationVelocities.length >= 15) { // ~ 500 ms
                         trialThreshold = calculatePerTrialThreshold(fixationVelocities);
                     } else {
                         console.warn(`Trial ${i+1}: Insufficient fixation data (${fixationVelocities.length} samples). Using default threshold: 30 deg/s`);
@@ -295,9 +295,7 @@ const GameTest = () => {
 
                 const dotAppearanceTime = irisTracker.current.getRelativeTime();
 
-                // if (irisTracker.current) {
-                //     irisTracker.current.addTrialContext(i + 1, side);
-                // }
+
                 if (irisTracker.current) {
                     irisTracker.current.addTrialContext(i + 1, `${testPhase}-${side}`);
                 }

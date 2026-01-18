@@ -1,5 +1,5 @@
 import { analyzeSaccadeData, aggregateTrialStatistics, compareProVsAnti } from '../../views/GameTest/utils/saccadeData';
-import { VelocityConfig } from '../../views/GameTest/utils/velocityConfig';
+import { MetricConfig } from '../../views/GameTest/utils/metricConfig';
 
 jest.mock('../../views/GameTest/utils/accuracyAdjust', () => ({
     calculateAccuracy: jest.fn(() => ({
@@ -18,8 +18,8 @@ jest.mock('../../store/calibrationSlice', () => ({
     }
 }));
 
-jest.mock('../../views/GameTest/utils/velocityConfig', () => {
-    const originalModule = jest.requireActual('../../views/GameTest/utils/velocityConfig');
+jest.mock('../../views/GameTest/utils/metricConfig', () => {
+    const originalModule = jest.requireActual('../../views/GameTest/utils/metricConfig');
     return {
         ...originalModule,
         VelocityConfig: {

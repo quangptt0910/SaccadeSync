@@ -1,10 +1,10 @@
-import { VelocityConfig, getPixelsPerDegree } from './velocityConfig';
+import { MetricConfig, getPixelsPerDegree } from './metricConfig';
 
 /**
  * Validates time delta between frames
  */
 const isValidTimeDelta = (timeDeltaSec) => {
-    return timeDeltaSec > 0 && timeDeltaSec <= VelocityConfig.TIME.MAX_DELTA_SEC * 2;
+    return timeDeltaSec > 0 && timeDeltaSec <= MetricConfig.TIME.MAX_DELTA_SEC * 2;
 };
 
 /**
@@ -16,7 +16,7 @@ const isValidTimeDelta = (timeDeltaSec) => {
  * @returns {Object} { distanceDegrees: number, dx: number, dy: number }
  */
 const calculateVisualAngleDistance = (point1, point2) => {
-    const { SCREEN, HORIZONTAL_FOV_DEGREES, VERTICAL_FOV_DEGREES } = VelocityConfig;
+    const { SCREEN, HORIZONTAL_FOV_DEGREES, VERTICAL_FOV_DEGREES } = MetricConfig;
 
     // Convert normalized difference to pixel difference
     const dxPixels = (point2.x - point1.x) * SCREEN.WIDTH;
@@ -77,7 +77,7 @@ const validateBinocularData = (currentPoint, prevPoint, timeDeltaSec) => {
     let disparity = 0;
     if (leftVelocity !== null && rightVelocity !== null) {
         disparity = Math.abs(leftVelocity - rightVelocity);
-        const maxDisparity = VelocityConfig.SACCADE.MAX_BINOCULAR_DISPARITY_DEG_PER_SEC;
+        const maxDisparity = MetricConfig.SACCADE.MAX_BINOCULAR_DISPARITY_DEG_PER_SEC;
 
         if (disparity > maxDisparity) {
             // We allow the data but mark it with a reason. 
@@ -151,7 +151,7 @@ const calculateSimpleDifferentiationVelocity = (currentPoint, prevPoint) => {
  * @returns {number} Threshold in degrees/second
  */
 export const calculateAdaptiveThreshold = (recentVelocities = []) => {
-    const { ADAPTIVE, STATIC_THRESHOLD_DEG_PER_SEC } = VelocityConfig.SACCADE;
+    const { ADAPTIVE, STATIC_THRESHOLD_DEG_PER_SEC } = MetricConfig.SACCADE;
 
     if (!ADAPTIVE.ENABLED || recentVelocities.length < ADAPTIVE.MIN_FIXATION_SAMPLES) {
         return STATIC_THRESHOLD_DEG_PER_SEC;
@@ -231,7 +231,7 @@ export const detectSaccade = (currentPoint, prevPoint, options = {}) => {
     const velocity = calculateCyclopeanVelocity(currentPoint, prevPoint, timeDeltaSec);
 
     // STEP 5: Apply threshold (adaptive or static)
-    const threshold = options.adaptiveThreshold || VelocityConfig.SACCADE.STATIC_THRESHOLD_DEG_PER_SEC;
+    const threshold = options.adaptiveThreshold || MetricConfig.SACCADE.STATIC_THRESHOLD_DEG_PER_SEC;
     const isSaccade = velocity > threshold;
 
     return {
@@ -263,7 +263,7 @@ export const detectSaccadeRaw = (currentPoint, prevPoint) => {
         return { velocity: 0, isSaccade: false, isValid: false };
     }
 
-    const { HORIZONTAL_FOV_DEGREES, VERTICAL_FOV_DEGREES, RAW_IRIS_GAIN } = VelocityConfig;
+    const { HORIZONTAL_FOV_DEGREES, VERTICAL_FOV_DEGREES, RAW_IRIS_GAIN } = MetricConfig;
 
     // Calculate for left eye
     const dLx = currentPoint.leftIris.x - prevPoint.leftIris.x;
@@ -283,7 +283,7 @@ export const detectSaccadeRaw = (currentPoint, prevPoint) => {
 
     // Average velocities
     const velocity = (leftDistDeg + rightDistDeg) / 2 / timeDeltaSec;
-    const threshold = VelocityConfig.SACCADE.STATIC_THRESHOLD_DEG_PER_SEC;
+    const threshold = MetricConfig.SACCADE.STATIC_THRESHOLD_DEG_PER_SEC;
 
     return {
         velocity,
