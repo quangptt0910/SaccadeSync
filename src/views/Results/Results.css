@@ -217,6 +217,7 @@
   font-size: 0.85rem;
   color: #666;
   margin: -10px 0 15px;
+  padding-top: 15px;
 }
 
 .stat-footer {
@@ -249,4 +250,45 @@
   justify-content: center;
   text-align: center;
   min-height: 400px;
+}
+
+/* Interpretation Card */
+.interpretation-content {
+  padding: 10px;
+}
+
+.interpretation-summary {
+  font-size: 1.1rem;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.interpretation-list li {
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.disclaimer-text {
+  font-size: 0.8rem;
+  color: #999;
+  font-style: italic;
+  margin-top: 20px;
+}
+
+.ref-text {
+  display: block;
+  font-size: 0.7rem;
+  color: #999;
+  margin-top: 4px;
+}
+
+.disclaimer-text a {
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.disclaimer-text a:hover {
+  color: #555;
 }

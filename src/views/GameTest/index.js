@@ -1,3 +1,18 @@
+/**
+ * GameTest View Component
+ *
+ * This is the core testing component of the application. It orchestrates the visual stimuli
+ * and records the user's eye movements using the webcam (via IrisFaceMeshTracker).
+ *
+ * Test Flow:
+ * 1. Checks for valid calibration.
+ * 2. Pro-Saccade Phase: User looks AT the target.
+ * 3. Break.
+ * 4. Anti-Saccade Phase: User looks AWAY from the target.
+ * 5. Data Analysis & Saving to Firebase.
+ *
+ * It handles full-screen management and trial timing (Fixation -> Gap -> Target).
+ */
 import React, {useState, useEffect, useRef} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -118,7 +133,7 @@ const GameTest = () => {
     }, [isCalibrated, user, dispatch]); // Removed calibrationModel from deps to avoid loops, relying on isCalibrated
 
 
-    // save metric data to firebase
+    // Save calculated metric data to Firebase Firestore
     const saveMetricsToFirebase = async (uid, data) => {
         try {
             const metricsRef = collection(db, "users", uid, "saccadeMetrics");
@@ -149,7 +164,7 @@ const GameTest = () => {
         }
     };
 
-    // start the test with the pro saccades
+    // Initialize and start the Pro-Saccade test phase
     const handleStartProTest = async () => {
         enterFullScreen(); // 1. Go Full Screen
 
@@ -184,7 +199,7 @@ const GameTest = () => {
     };
 
 
-    // start the second phase which is the anti saccades
+    // Initialize and start the Anti-Saccade test phase (after break)
     const handleStartAntiTest = async () => {
         enterFullScreen();
 
@@ -221,6 +236,7 @@ const GameTest = () => {
         comparison: null
     })
 
+    // Main Test Loop: Handles the timing and logic for each trial
     useEffect(() => {
         if (!isStarted || isFinished || showBreak) return; // Don't run logic yet
 

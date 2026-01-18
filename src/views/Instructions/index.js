@@ -1,3 +1,9 @@
+/**
+ * Instructions View Component
+ *
+ * Displays step-by-step instructions for the user before they begin the eye-tracking tests.
+ * It explains the difference between Pro-Saccade and Anti-Saccade tasks using visual aids.
+ */
 import React from 'react';
 import { Helmet } from 'react-helmet';
 import Button from '../../components/Button';
