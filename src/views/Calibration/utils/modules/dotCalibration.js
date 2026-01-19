@@ -151,8 +151,9 @@ function getRelativeIrisPos(landmarks, eyeSide) {
     // Formula: (Iris x Eye) / |Eye|
     const crossProduct = vecIris.x * vecEye.y - vecIris.y * vecEye.x;
 
-    // Scale Y: We multiply by 4.0 to amplify vertical movement / more sensitivity
-    let normY = 0.5 + (crossProduct / eyeWidth) * 4.0;
+    // Scale Y: We multiply by 1.2 to amplify vertical movement / more sensitivity
+    const vertical_gain = 1.2;
+    let normY = 0.5 + (crossProduct / eyeWidth) * vertical_gain;
 
     return { x: normX, y: normY };
 }
