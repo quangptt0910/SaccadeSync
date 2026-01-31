@@ -4,7 +4,7 @@
  * Based on ADHD research standards and visual science principles
  */
 
-export const VelocityConfig = {
+export const MetricConfig = {
     // Screen and Visual Field Parameters
     SCREEN: {
         WIDTH: window.innerWidth || 1920,
@@ -36,6 +36,11 @@ export const VelocityConfig = {
 
         // Validity check: Maximum allowed difference between left/right eye velocities
         MAX_BINOCULAR_DISPARITY_DEG_PER_SEC: 100,
+    },
+
+    FIXATION: {
+        DURATION: 200, // Softer compare to desktop eye tracker at 70 - 100ms
+        SACCADE_GAIN_WINDOW: 100, // Increase from 67ms
     },
 
     LATENCY_VALIDATION: {
@@ -78,8 +83,8 @@ export const VelocityConfig = {
  * @returns {Object} { horizontal: number, vertical: number }
  */
 export const getPixelsPerDegree = () => ({
-    horizontal: VelocityConfig.SCREEN.WIDTH / VelocityConfig.SCREEN.HORIZONTAL_FOV_DEGREES,
-    vertical: VelocityConfig.SCREEN.HEIGHT / VelocityConfig.SCREEN.VERTICAL_FOV_DEGREES,
+    horizontal: MetricConfig.SCREEN.WIDTH / MetricConfig.SCREEN.HORIZONTAL_FOV_DEGREES,
+    vertical: MetricConfig.SCREEN.HEIGHT / MetricConfig.SCREEN.VERTICAL_FOV_DEGREES,
 });
 
 /**
@@ -87,7 +92,7 @@ export const getPixelsPerDegree = () => ({
  * This should be called DURING each trial's center fixation
  */
 export const calculatePerTrialThreshold = (fixationVelocities) => {
-    const { ADAPTIVE, STATIC_THRESHOLD_DEG_PER_SEC } = VelocityConfig.SACCADE;
+    const { ADAPTIVE, STATIC_THRESHOLD_DEG_PER_SEC } = MetricConfig.SACCADE;
 
     // Filter out spurious movements during "fixation"
     const cleanFixationVelocities = fixationVelocities.filter(v =>

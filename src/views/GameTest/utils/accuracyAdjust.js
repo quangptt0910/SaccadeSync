@@ -1,11 +1,19 @@
 // GameTest\utils\accuracyAdjust.js
-
+/**
+ * This implementation to generate a accuracy metrics for saccade tasks that take into accounts of
+ *  webcam, low frame rate and calibration drift
+ *  Compare to professional Eye Tracker
+ **/
 import {selectCalibrationMetrics} from "../../../store/calibrationSlice";
+import {MetricConfig as metricConfig, MetricConfig} from "./metricConfig";
 
 /**
  * Calculate adaptive ROI based on calibration accuracy and tracker FPS
+ * Base start at 10% of screen (~4 - 5 degree)
+ * Calibration accuracy penalty -> Roi expands
+ * Fps at 30 fps, expands further
+ * Return about 5-8 degree (0.12 - 0.25 normalized screen)
  */
-
 const calculateAdaptiveROI = (calibrationAccuracy, trackerFPS) => {
     // Base ROI for perfect calibration: 3° (0.1 screen width)
     const baseROI = 0.10;
@@ -35,7 +43,8 @@ const calculateAdaptiveROI = (calibrationAccuracy, trackerFPS) => {
 const assessFrameQuality = (frame) => {
     let qualityScore = 1.0;
 
-    // Check 1: Do we have binocular data?
+    // Check 1: Do we have binocular data
+    // If only left OR right, quality down by half
     if (!frame.calibrated?.left || !frame.calibrated?.right) {
         qualityScore *= 0.5; // Monocular is less reliable
     }
@@ -54,8 +63,8 @@ const assessFrameQuality = (frame) => {
         }
     }
 
-    // Check 3: Velocity plausibility (during fixation should be <20°/s)
-    if (frame.velocity && frame.velocity > 20 && !frame.isSaccade) {
+    // Check 3: Velocity plausibility (during fixation should be <30°/s)
+    if (frame.velocity && frame.velocity > MetricConfig.SACCADE.STATIC_THRESHOLD_DEG_PER_SEC && !frame.isSaccade) {
         qualityScore *= 0.5; // High velocity during "fixation" = artifact
     }
 
@@ -65,6 +74,7 @@ const assessFrameQuality = (frame) => {
 /**
  * WEBCAM-ADJUSTED ACCURACY CALCULATION
  * Uses relaxed thresholds appropriate for low-fps noisy tracking
+ * Landing point + gain score + fixation (stability)
  */
 export const calculateAccuracy = (
     recordingData,
@@ -74,11 +84,10 @@ export const calculateAccuracy = (
 ) => {
     const {
         calibrationAccuracy = selectCalibrationMetrics?.accuracy?.left || 0.91,    // MediaPipe hardcode accuracy MediaPipe accuracy is 1-3° in ideal conditions
-        trackerFPS = 30,                // Webcam frame rate
-        roiRadius = null,               // Auto-calculate if null
-        fixationDuration = 300,         // Keep standard 300ms
-        saccadicGainWindow = 100,       // INCREASED from 67ms to 100ms
-        minLatency = 100,
+        trackerFPS = 30,                // Webcam frame rate - NEED TO FIX for real but most likely 30 fps
+        roiRadius = null,                  // Auto-calculate if null
+        fixationDuration = metricConfig.FIXATION.DURATION,         // defines the post-saccade analysis window
+        saccadicGainWindow = metricConfig.FIXATION.SACCADE_GAIN_WINDOW,       // INCREASED from 67ms to 100ms
         fixationStabilityThreshold = 0.70  // RELAXED from 0.80 to 0.70
     } = options;
 
@@ -97,7 +106,7 @@ export const calculateAccuracy = (
         };
     }
 
-    // Find fixation point before saccade
+    // Find fixation point before saccade - before the dot appears 500ms to 1000ms
     let fixationPoint = null;
     for (const frame of recordingData) {
         if (frame.timestamp < dotAppearanceTime - 500 &&
@@ -108,7 +117,8 @@ export const calculateAccuracy = (
             }
         }
     }
-    if (!fixationPoint) fixationPoint = { x: 0.5, y: 0.5 };
+
+    if (!fixationPoint) fixationPoint = { x: 0.5, y: 0.5 }; //fallbacks to perfect value
 
     // Get target coordinates
     const targetFrame = recordingData.find(f =>
