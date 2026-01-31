@@ -121,42 +121,102 @@ const EYE_INDICES = {
     right: { inner: 362, outer: 263, iris: 473 }
 };
 
+const RIGHT_IRIS_CENTER = 473;
+const LEFT_IRIS_CENTER = 468;
+
+function computeIrisCenter(landmarks, index) {
+    const point = landmarks[index];
+    if (!point) return null;
+    return { x: point.x, y: point.y };
+}
+
 /**
  * Calculates iris position relative to eye corners (Local Coordinates).
  * Returns {x, y} where x=0 is Inner Corner, x=1 is Outer Corner.
  */
+// function getRelativeIrisPos(landmarks, eyeSide) {
+//     const indices = EYE_INDICES[eyeSide];
+//     const pInner = landmarks[indices.inner];
+//     const pOuter = landmarks[indices.outer];
+//     const pIris = landmarks[indices.iris];
+//
+//     if (!pInner || !pOuter || !pIris) return null;
+//
+//     // 1. Calculate Vector Basis (Eye Width line)
+//     const vecEye = { x: pOuter.x - pInner.x, y: pOuter.y - pInner.y };
+//     const vecIris = { x: pIris.x - pInner.x, y: pIris.y - pInner.y };
+//
+//     // 2. Eye Width (Magnitude squared for projection)
+//     const eyeWidthSq = vecEye.x * vecEye.x + vecEye.y * vecEye.y;
+//     // const eyeWidth = Math.sqrt(eyeWidthSq);
+//
+//     // 3. Project Iris onto horizontal Eye Axis (Scalar Projection)
+//     // Formula: (Iris • Eye) / |Eye|^2
+//     // This gives a normalized X value: 0.0 (Inner) -> 1.0 (Outer)
+//     //let normX = (vecIris.x * vecEye.x + vecIris.y * vecEye.y) / eyeWidthSq;
+//
+//     const eyeWidthX = pOuter.x - pInner.x;
+//     let normX = (pIris.x - pInner.x) / eyeWidthX;
+//     // 4.
+//     // Calculate iris vertical position as a fraction of eye opening height
+//     const eyeTopY = Math.min(pInner.y, pOuter.y);      // Top of eye
+//     const eyeBottomY = Math.max(pInner.y, pOuter.y);   // Bottom of eye
+//     const eyeHeight = eyeBottomY - eyeTopY;
+//
+//     // 1.0 = looking up (iris at top), 0.0 = looking down (iris at bottom)
+//     let normY = 1.0 - ((pIris.y - eyeTopY) / eyeHeight);
+//
+//     return { x: normX, y: normY };
+// }
+
 function getRelativeIrisPos(landmarks, eyeSide) {
-    const indices = EYE_INDICES[eyeSide];
+    const indices = eyeSide === 'left'
+        ? { inner: 33, outer: 133, iris: 468 }
+        : { inner: 362, outer: 263, iris: 473 };
+
     const pInner = landmarks[indices.inner];
     const pOuter = landmarks[indices.outer];
     const pIris = landmarks[indices.iris];
 
     if (!pInner || !pOuter || !pIris) return null;
 
-    // 1. Calculate Vector Basis (Eye Width line)
-    const vecEye = { x: pOuter.x - pInner.x, y: pOuter.y - pInner.y };
-    const vecIris = { x: pIris.x - pInner.x, y: pIris.y - pInner.y };
+    // ========== HORIZONTAL (X) ==========
+    // Simple ratio: where is iris between inner and outer corner?
+    const normX = (pIris.x - pInner.x) / (pOuter.x - pInner.x);
 
-    // 2. Eye Width (Magnitude squared for projection)
-    const eyeWidthSq = vecEye.x * vecEye.x + vecEye.y * vecEye.y;
-    const eyeWidth = Math.sqrt(eyeWidthSq);
+    // ========== VERTICAL (Y) ==========
+    // Find the ACTUAL vertical span of the eye
+    // Use more eye landmark points for accurate bounds
+    const eyeContourIndices = eyeSide === 'left'
+        ? [33, 160, 158, 133, 153, 144]  // Left eye
+        : [362, 385, 387, 263, 373, 380]; // Right eye
 
-    // 3. Project Iris onto horizontal Eye Axis (Scalar Projection)
-    // Formula: (Iris • Eye) / |Eye|^2
-    // This gives a normalized X value: 0.0 (Inner) -> 1.0 (Outer)
-    let normX = (vecIris.x * vecEye.x + vecIris.y * vecEye.y) / eyeWidthSq;
+    const yCoords = eyeContourIndices
+        .map(i => landmarks[i]?.y)
+        .filter(y => y !== undefined);
 
-    // 4. Calculate Vertical Offset (Cross Product)
-    // Measures distance from the line connecting corners
-    // Formula: (Iris x Eye) / |Eye|
-    const crossProduct = vecIris.x * vecEye.y - vecIris.y * vecEye.x;
+    if (yCoords.length === 0) return null;
 
-    // Scale Y: We multiply by 1.2 to amplify vertical movement / more sensitivity
-    const vertical_gain = 1.2;
-    let normY = 0.5 + (crossProduct / eyeWidth) * vertical_gain;
+    const eyeTopY = Math.min(...yCoords);
+    const eyeBottomY = Math.max(...yCoords);
+    const eyeHeight = eyeBottomY - eyeTopY;
 
-    return { x: normX, y: normY };
+    // Avoid division by zero AND clamp result
+    let normY;
+    if (eyeHeight > 0.01) {
+        // Where is iris between top and bottom of eye?
+        normY = (pIris.y - eyeTopY) / eyeHeight;
+        normY = Math.max(0, Math.min(1, normY));  // Clamp!
+    } else {
+        normY = 0.5;  // Safe default
+    }
+
+    return {
+        x: Math.max(0, Math.min(1, normX)),
+        y: normY
+    };
 }
+
 
 /**
  * Calculates the exact screen pixel coordinates for the calibration points.
@@ -167,7 +227,7 @@ export function getDotPoints() {
     // The height/width of the screen
     const w = window.innerWidth;
     const h = window.innerHeight;
-    //const margin = Math.max(60, Math.min(200, Math.round(Math.min(w,h)*0.08))); // we got some magic numbers here :))
+
     const marginLeft = 0.05; // % of screen size
     const mid = 0.5
     const marginRight = 1 - marginLeft;
@@ -230,8 +290,8 @@ export async function collectSamplesForPoint(idx, screenX, screenY) {
 
             // Use local coordinates (0.0 - 1.0 relative to eye corners)
             // No need for manual "1 - x" flipping here; the corners define the direction.
-            const rightRaw = getRelativeIrisPos(lm, 'right');
-            const leftRaw = getRelativeIrisPos(lm, 'left');
+            const rightRaw = getRelativeIrisPos(lm, "right");
+            const leftRaw = getRelativeIrisPos(lm, "left");
 
             // NOTE: Even with local coords, we ensure the object structure is clean
             const right = rightRaw ? {
@@ -248,26 +308,28 @@ export async function collectSamplesForPoint(idx, screenX, screenY) {
                 continue;
             }
 
+
             if (skipCount < SKIP_FIRST_N) {
                 skipCount++;
                 await sleep(SAMPLE_INTERVAL_MS);
                 continue;
             }
 
-            if (count === 0) {
+            const raw468left = computeIrisCenter(lm, LEFT_IRIS_CENTER);
+            const raw473right = computeIrisCenter(lm, RIGHT_IRIS_CENTER);
+            if (count === SKIP_FIRST_N) {
                 console.log(`📍 Point ${idx} (target: ${screenX.toFixed(2)}, ${screenY.toFixed(2)}):`, {
                     dotPixels: { x: screenX * window.innerWidth, y: screenY * window.innerHeight },
                     targetNormalized: { x: screenX, y: screenY },
 
-                    // 🔍 RAW LANDMARKS (before flip)
-                    raw_468_frameLeft: leftRaw,
-                    raw_473_frameRight: rightRaw,
+                    // 🔍 RAW LANDMARKS
+                    raw_468_frameLeft: raw468left,
+                    raw_473_frameRight: raw473right,
 
                     // After processing
                     irisLeft: left,
                     irisRight: right,
 
-                    videoSize: { width: refs.video.videoWidth, height: refs.video.videoHeight },
                     totalLandmarks: lm.length
                 });
             }
