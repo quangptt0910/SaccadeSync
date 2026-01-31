@@ -46,7 +46,7 @@ class IrisFaceMeshTracker {
     /**
      * Calculates iris position relative to eye corners (Local Coordinates).
      * Returns {x, y} where x=0 is Inner Corner, x=1 is Outer Corner.
-     * 
+     *
      * @param {Array} landmarks - Array of face landmarks.
      * @param {string} eyeSide - 'left' or 'right'.
      * @returns {Object|null} Normalized iris position {x, y} or null if landmarks are missing.
@@ -129,7 +129,6 @@ class IrisFaceMeshTracker {
      */
     setCalibrationModel(model) {
         this.calibrationModel = model;
-        console.log("Calibration model set in tracker:", model);
     }
 
     /**
@@ -228,15 +227,6 @@ class IrisFaceMeshTracker {
             const rightIris = rightRaw ? { x: 1 - rightRaw.x, y: rightRaw.y } : null;
             const leftIris = leftRaw ? { x: 1 - leftRaw.x, y: leftRaw.y } : null;
 
-            // 🔍 DIAGNOSTIC - Log first 3 frames
-            if (this.trackingData.length < 3) {
-                console.log(`🎮Frame ${this.trackingData.length + 1}:`, {
-                    timestamp,
-                    leftIris,
-                    rightIris,
-                    totalLandmarks: landmarks.length
-                });
-            }
 
             // Apply calibration if available
             let calibratedLeft = null;
@@ -256,15 +246,6 @@ class IrisFaceMeshTracker {
                 }
 
 
-                // 🔍 DIAGNOSTIC - Log first 3 calibrated predictions
-                if (this.trackingData.length < 3) {
-                    console.log(`🎯 Calibrated ${this.trackingData.length + 1}:`, {
-                        raw: {left: leftIris, right: rightIris},
-                        calibrated: {left: calibratedLeft, right: calibratedRight, avg: calibratedAvg},
-                    });
-                }
-
-
             } else {
                 // Fallback if no calibration (Use raw normalized inputs)
                 if (leftIris) calibratedLeft = leftIris;
@@ -277,6 +258,16 @@ class IrisFaceMeshTracker {
                 }
             }
 
+            // 🔍 DIAGNOSTIC - Log first 3 frames
+            if (this.trackingData.length <= 6) {
+                console.log(`🎮Frame ${this.trackingData.length + 1}:`, {
+                    timestamp,
+                    leftIris,
+                    rightIris,
+                    totalLandmarks: landmarks.length,
+                    calibratedAvg: calibratedAvg,
+                });
+            }
 
             const dataPoint = {
                 timestamp: timestamp,
@@ -395,7 +386,7 @@ class IrisFaceMeshTracker {
      * This context is attached to every subsequent data frame.
      * 
      * @param {number} trialNumber - The current trial number.
-     * @param {string} dotPosition - The position of the target dot (e.g., 'left', 'right', 'center').
+     * @param {string} dotPosition - The test phase + The position of the target dot (e.g., 'left', 'right', 'center').
      */
     addTrialContext(trialNumber, dotPosition) {
         // Calculate target coordinates based on dotPosition

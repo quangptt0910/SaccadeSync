@@ -1,5 +1,5 @@
 // Calibration\display.js
-import { ridgeRegression, findOptimalLambda, leastSquares} from "./mathUtils.js";
+import { ridgeRegression, findOptimalLambda, leastSquares, lambdaGrid } from "./mathUtils.js";
 import { gazeData, calibrationModel } from "./dotCalibration.js";
 
 /**
@@ -31,15 +31,16 @@ export function displayPredictionModel(useRidge = true) {
         // const px = leastSquares(A,bx);
         // const py = leastSquares(A,by);
 
+        let lambdaX = 0;
+        let lambdaY = 0;
         if (useRidge) {
             // 🔧 RIDGE REGRESSION with cross-validation
             console.log(`Finding optimal lambda for ${eye} eye...`);
-            const lambdaX = findOptimalLambda(A, bx, [0.001, 0.01, 0.1, 1.0, 10.0], 5);
-            const lambdaY = findOptimalLambda(A, by, [0.001, 0.01, 0.1, 1.0, 10.0], 5);
+            lambdaX = findOptimalLambda(A, bx, lambdaGrid, 5);
+            lambdaY = findOptimalLambda(A, by, lambdaGrid, 5);
 
             px = ridgeRegression(A, bx, lambdaX);
             py = ridgeRegression(A, by, lambdaY);
-            lambda = (lambdaX + lambdaY) / 2;
 
             console.log(`${eye} eye: λ_x=${lambdaX}, λ_y=${lambdaY}`);
         } else {
@@ -49,8 +50,6 @@ export function displayPredictionModel(useRidge = true) {
         }
 
         if (!px || !py) return {success: false, reason: "matrix failure"};
-
-        if(!px || !py) return {success:false, reason:"matrix failure"};
 
         let errSum= 0;
         for(let i= 0; i < A.length; i++){
@@ -63,7 +62,17 @@ export function displayPredictionModel(useRidge = true) {
         const rmse = Math.sqrt(errSum / A.length);
         const accuracy = Math.max(0, 1 - rmse);
 
-        return {success:true, px, py, rmse, accuracy, samples:A.length, lambda: lambda, method: useRidge ? 'ridge' : 'ols'};
+        return {
+            success:true,
+            samples: A.length,
+            px,
+            py,
+            rmse,
+            accuracy,
+            lambdaX: lambdaX,
+            lambdaY: lambdaY,
+            method: useRidge ? 'ridge' : 'ols'
+        };
     };
 
     console.group('📊 Per-Eye Movement Analysis');
@@ -94,7 +103,6 @@ export function displayPredictionModel(useRidge = true) {
     const rangeDiff = Math.abs((leftMaxX - leftMinX) - (rightMaxX - rightMinX));
     console.log('Range difference:', {
         diff: rangeDiff.toFixed(4),
-        status: rangeDiff < 0.005 ? '✅ SYMMETRIC' : '⚠️ ASYMMETRIC (possible bug)'
     });
 
     console.groupEnd();
@@ -108,10 +116,14 @@ export function displayPredictionModel(useRidge = true) {
     if(leftRes.success){
         calibrationModel.left.coefX = leftRes.px;
         calibrationModel.left.coefY = leftRes.py;
+        calibrationModel.left.lambdaX = leftRes.lambdaX;
+        calibrationModel.left.lambdaY = leftRes.lambdaY
     }
     if(rightRes.success){
         calibrationModel.right.coefX = rightRes.px;
         calibrationModel.right.coefY = rightRes.py;
+        calibrationModel.right.lambdaX = rightRes.lambdaX;
+        calibrationModel.right.lambdaY = rightRes.lambdaY;
     }
 
     // debug: Store calibration metadata - UPDATED
@@ -131,21 +143,32 @@ export function displayPredictionModel(useRidge = true) {
             height: window.innerHeight
         },
         timestamp: Date.now(),
-        version: '1.0.2'
+        version: '1.0.3'
     };
 
     console.log('📊 Calibration complete:', {
         method: useRidge ? 'Ridge Regression' : 'Ordinary Least Squares',
-        leftRMSE: leftRes.rmse?.toFixed(4),
-        rightRMSE: rightRes.rmse?.toFixed(4),
-        leftLambda: leftRes.lambda,
-        rightLambda: rightRes.lambda
+        left: {
+            rmse: leftRes.rmse?.toFixed(4),
+            // Proof that X and Y are different:
+            lambdaX: leftRes.lambdaX,
+            lambdaY: leftRes.lambdaY
+        },
+        right: {
+            rmse: rightRes.rmse?.toFixed(4),
+            lambdaX: rightRes.lambdaX,
+            lambdaY: rightRes.lambdaY
+        }
     });
 
     return {
         sucess: {left: leftRes.success, right: rightRes.success },
         rmse: {left: leftRes.rmse, right: rightRes.rmse },
         accuracy: { left: leftRes.accuracy, right: rightRes.accuracy },
+        lambda: {
+            left: {x: leftRes.lambdaX, y: leftRes.lambdaY},
+            right: {x: rightRes.lambdaX, y: rightRes.lambdaY}
+        },
         method: useRidge ? 'ridge' : 'ols'
     };
 }

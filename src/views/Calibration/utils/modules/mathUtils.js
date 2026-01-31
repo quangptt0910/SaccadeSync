@@ -161,7 +161,10 @@ function gaussianElimination(A, b) {
  * @param {number} [k=5] - Number of folds for cross-validation.
  * @returns {number} The lambda value that resulted in the lowest average Mean Squared Error.
  */
-export function findOptimalLambda(A, b, lambdaRange = [0.001, 0.01, 0.1, 1.0, 10.0], k = 5) {
+export const lambdaGrid = [
+    0.001, 0.002, 0.003, 0.005, 0.007,
+    0.01, 0.015, 0.02, 0.03, 0.05, 0.07, 0.1
+];export function findOptimalLambda(A, b, lambdaRange = lambdaGrid, k = 5) {
     const m = A.length;
     const foldSize = Math.floor(m / k);
 

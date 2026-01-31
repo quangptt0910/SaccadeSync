@@ -1,9 +1,9 @@
 import { detectSaccade, calculateAdaptiveThreshold, detectSaccadeRaw } from '../../views/GameTest/utils/detectSaccade';
-import { VelocityConfig } from '../../views/GameTest/utils/velocityConfig';
+import { MetricConfig } from '../../views/GameTest/utils/metricConfig';
 
-// Mock VelocityConfig to have predictable values
-jest.mock('../../views/GameTest/utils/velocityConfig', () => {
-    const originalModule = jest.requireActual('../../views/GameTest/utils/velocityConfig');
+// Mock MetricConfig to have predictable values
+jest.mock('../../views/GameTest/utils/metricConfig', () => {
+    const originalModule = jest.requireActual('../../views/GameTest/utils/metricConfig');
     return {
         ...originalModule,
         VelocityConfig: {

@@ -1,6 +1,6 @@
 // saccadeData.js - Enhanced post-processing analysis for ADHD research
 import { calculateAccuracy } from "./accuracyAdjust";
-import { VelocityConfig } from "./velocityConfig";
+import { MetricConfig } from "./metricConfig";
 import { calculateAdaptiveThreshold } from "./detectSaccade";
 import {selectCalibrationMetrics} from "../../../store/calibrationSlice";
 
@@ -27,8 +27,8 @@ export const analyzeSaccadeData = (recordingData, dotAppearanceTime, options = {
 
     // Get task-specific latency bounds
     const latencyConfig = trialType === 'pro'
-        ? VelocityConfig.LATENCY_VALIDATION.PRO_SACCADE
-        : VelocityConfig.LATENCY_VALIDATION.ANTI_SACCADE;
+        ? MetricConfig.LATENCY_VALIDATION.PRO_SACCADE
+        : MetricConfig.LATENCY_VALIDATION.ANTI_SACCADE;
     console.log(`Trial Analysis (${trialType}): Threshold=${adaptiveThreshold.toFixed(2)}°/s, Latency Window=[${latencyConfig.MIN_MS}, ${latencyConfig.MAX_MS}]ms`);
 
     // Saccade Detection (existing logic)
