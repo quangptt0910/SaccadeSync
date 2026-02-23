@@ -30,3 +30,9 @@ coverage/
 # Misc
 *.log
 .cache/
+
+# Other
+GEMINI.md
+WARP.md
+firebase_schema.json
+firestore_schema.json
