@@ -1,17 +1,32 @@
 # SaccadeSync
-
-> A web-based eye-tracking application for ADHD and fatigue screening through scientifically validated saccade tests.
-
 ![Tech Stack](https://img.shields.io/badge/React-Frontend-blue)
 ![AI](https://img.shields.io/badge/MediaPipe-FaceLandmarker-green)
 ![Backend](https://img.shields.io/badge/Firebase-Serverless-orange)
+![Tests](https://img.shields.io/badge/Jest-Tested-brightgreen)
 
-[//]: # (![Tests]&#40;https://img.shields.io/badge/Jest-Tested-brightgreen&#41;)
+> A web-based eye-tracking application for ADHD and fatigue screening through scientifically validated saccade tests.
+
 [//]: # (![License]&#40;https://img.shields.io/badge/license-MIT-lightgrey&#41;)
+
+## Screenshot
+
+<img src="readme/Home.png" width="800"/> <br>
+<img src="readme/Results.png" alt="SaccadeSync Results Dashboard" width="800"/> 
+
+<table>
+  <tr>
+    <td><img src="readme/Calibration.png" width="400"/></td>
+    <td><img src="readme/Instructions.png" width="390"/></td>
+  </tr>
+  <tr>
+    <td text-align="center"><b>Calibration</b></td>
+    <td text-align="center"><b>Instruction</b></td>
+  </tr>
+</table>
 
 ---
 
-## What are Saccades ?
+## What are Saccades?
 
 Saccades are quick, simultaneous movements of both eyes between two or more points of focus
 in the same direction. Research has shown that saccadic eye movement patterns can reveal
@@ -35,10 +50,10 @@ Results are compared against research-based ADHD thresholds and stored persisten
 
 ## Features
 
--  **Live webcam feed** with real-time face detection and positioning feedback
--  **9-point guided calibration** using Ridge Regression — retake if accuracy < 85%
--  **Pro-Saccade & Anti-Saccade tests** — 10 trials each, randomized stimuli timing and position
--  **Results dashboard** with velocity, latency, accuracy, and variability metrics
+- **Live webcam feed** with real-time face detection and positioning feedback
+- **9-point guided calibration** using Ridge Regression — retake if accuracy < 85%
+- **Pro-Saccade & Anti-Saccade tests** — 10 trials each, randomized stimuli timing and position
+- **Results dashboard** with velocity, latency, accuracy, and variability metrics
 - **Historical timeline** — last 14 sessions visualized with Chart.js line graphs
 - **Cross-device sync** via Firebase Authentication + Firestore
 - **Privacy-first** — video never leaves your browser; only aggregated metrics are stored
@@ -47,16 +62,16 @@ Results are compared against research-based ADHD thresholds and stored persisten
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Language | JavaScript |
-| Frontend | React, HTML, CSS |
-| Computer Vision | Google MediaPipe Web SDK (`@mediapipe/vision` v0.10.22) |
-| Data Visualization | Chart.js |
-| Backend / Auth / DB | Firebase (Serverless) |
-| State Management | Redux |
-| Testing | Jest + React Testing Library |
-| CI/CD | GitHub Actions |
+| Layer               | Technology                                              |
+|---------------------|---------------------------------------------------------|
+| Language            | JavaScript                                              |
+| Frontend            | React, HTML, CSS                                        |
+| Computer Vision     | Google MediaPipe Web SDK (`@mediapipe/vision` v0.10.22) |
+| Data Visualization  | Chart.js                                                |
+| Backend / Auth / DB | Firebase (Serverless)                                   |
+| State Management    | Redux                                                   |
+| Testing             | Jest + React Testing Library                            |
+| CI/CD               | GitHub Actions                                          |
 
 ---
 
