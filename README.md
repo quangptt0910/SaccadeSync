@@ -10,13 +10,13 @@
 
 ## Screenshot
 
-<img src="readme/Home.png" width="800"/> <br>
-<img src="readme/Results.png" alt="SaccadeSync Results Dashboard" width="800"/> 
+<img src="readme/Home.png" width="700"/> <br>
+<img src="readme/Results.png" alt="SaccadeSync Results Dashboard" width="700"/> <br>
 
 <table>
   <tr>
-    <td><img src="readme/Calibration.png" width="400"/></td>
-    <td><img src="readme/Instructions.png" width="390"/></td>
+    <td><img src="readme/Calibration.png" width="340"/></td>
+    <td><img src="readme/Instructions.png" width="340"/></td>
   </tr>
   <tr>
     <td text-align="center"><b>Calibration</b></td>
