@@ -19,9 +19,10 @@
     <td><img src="readme/Instructions.png" width="340"/></td>
   </tr>
   <tr>
-    <td text-align="center"><b>Calibration</b></td>
-    <td text-align="center"><b>Instruction</b></td>
-  </tr>
+     <tr>
+        <td style="text-align: center;"><b>Calibration</b></td>
+        <td style="text-align: center;"><b>Instruction</b></td>
+ </tr>
 </table>
 
 ---
